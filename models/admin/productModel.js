@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema(
         description: {
             type: String,
             required: [true, 'Please provide Product description'],
+            trim: true,
         },
         category: {
             type: mongoose.Schema.Types.ObjectId,
@@ -109,13 +110,13 @@ const productSchema = new mongoose.Schema(
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',
         },
-        userId: {
+        ownerId: {
             type: mongoose.Schema.Types.ObjectId,
             required: [true, 'Please provide user.'],
         },
-        userType: {
+        ownerType: {
             type: String,
-            enum: ['vendor', 'admin'],
+            enum: ['vendor', 'in-house'],
             required: true,
         },
         slug: String,

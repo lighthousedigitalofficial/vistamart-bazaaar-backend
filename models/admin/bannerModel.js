@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { adminDbConnection } from '../../config/dbConnections'
 
 const bannerSchema = new mongoose.Schema(
     {
@@ -32,5 +33,5 @@ const bannerSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-const Banner = mongoose.model('Banner', bannerSchema)
+const Banner = adminDbConnection.model('Banner', bannerSchema)
 export default Banner

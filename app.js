@@ -12,6 +12,8 @@ import path, { dirname } from 'path'
 import routes from './routes/index.js'
 
 import { cleanCache } from './controllers/handleFactory.js'
+import helmet from 'helmet'
+import ExpressMongoSanitize from 'express-mongo-sanitize'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -40,22 +42,35 @@ app.use(
         origin: '*', // Allows all origins, but only for testing
         methods: 'GET,POST,PUT,DELETE',
         credentials: true,
+        optionSuccessStatus: 200,
     })
 )
 
-// Global input sanitization middleware
+// Security headers first
+app.use(helmet())
+// CORS setup before request handling
+app.use(cors(corsOptions))
+// Parse JSON request body early
 app.use(express.json())
+// Parse URL-encoded form data
 app.use(express.urlencoded({ extended: true }))
+// Parse cookies before using them (e.g., for auth)
 app.use(cookieParser())
+// Sanitize the request after body and cookies are parsed
+app.use(ExpressMongoSanitize())
 
 // Developing logging
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'))
 }
 
-app.get('/', (req, res, next) => {
-    res.send('Ecommerce Bazaar API is Running')
-    next()
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: '❇️ DHA API is running successfully',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+    })
 })
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))

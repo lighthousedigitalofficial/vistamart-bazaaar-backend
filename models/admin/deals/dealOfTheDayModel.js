@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { adminDbConnection } from '../../../config/dbConnections.js'
 
 const dealOfTheDaySchema = new mongoose.Schema(
     {
@@ -24,7 +25,9 @@ const dealOfTheDaySchema = new mongoose.Schema(
 )
 
 dealOfTheDaySchema.pre('save', async function (next) {
-    const product = await mongoose.model('Product').findById(this.product)
+    const product = await adminDbConnection
+        .model('Product')
+        .findById(this.product)
 
     if (!product) {
         return next(new AppError('Referenced product ID does not exist', 400))
@@ -40,6 +43,6 @@ dealOfTheDaySchema.pre(/^find/, function (next) {
     next()
 })
 
-const DealOfTheDay = mongoose.model('DealOfTheDay', dealOfTheDaySchema)
+const DealOfTheDay = adminDbConnection.model('DealOfTheDay', dealOfTheDaySchema)
 
 export default DealOfTheDay

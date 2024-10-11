@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
+import AppError from '../../../utils/appError.js'
+import { adminDbConnection } from '../../../config/dbConnections.js'
 
 const featuredDealSchema = new mongoose.Schema(
     {
@@ -24,7 +25,7 @@ const featuredDealSchema = new mongoose.Schema(
         products: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'Product',
+                // ref: 'Product',
             },
         ],
     },
@@ -39,7 +40,7 @@ featuredDealSchema.pre('save', async function (next) {
     try {
         // Check if products are provided and validate them
         if (this.products && this.products.length > 0) {
-            const productCheck = await mongoose
+            const productCheck = await adminDbConnection
                 .model('Product')
                 .countDocuments({
                     _id: { $in: this.products },
@@ -71,5 +72,5 @@ featuredDealSchema.pre(/^find/, function (next) {
     next()
 })
 
-const FeaturedDeal = mongoose.model('FeaturedDeal', featuredDealSchema)
+const FeaturedDeal = adminDbConnection.model('FeaturedDeal', featuredDealSchema)
 export default FeaturedDeal

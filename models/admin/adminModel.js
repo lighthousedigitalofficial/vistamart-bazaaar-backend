@@ -3,7 +3,7 @@ import validator from 'validator'
 import bcrypt from 'bcryptjs'
 import { adminDbConnection } from '../../config/dbConnections'
 
-const userSchema = new mongoose.Schema(
+const adminSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -29,8 +29,7 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ['admin', 'user'],
-            default: 'user',
+            enum: ['admin'],
         },
         password: {
             type: String,
@@ -90,6 +89,6 @@ userSchema.methods.createPasswordResetToken = function () {
     return resetToken
 }
 
-const User = adminDbConnection.model('User', userSchema)
+const Admin = adminDbConnection.model('Admin', adminSchema)
 
-export default User
+export default Admin

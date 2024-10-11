@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import slugify from 'slugify'
+import { adminDbConnection } from '../../config/dbConnections.js'
 
 const brandSchema = new mongoose.Schema(
     {
@@ -31,14 +31,6 @@ const brandSchema = new mongoose.Schema(
         timestamps: true,
     }
 )
-// Middleware to create slug before saving the document
-// brandSchema.pre('save', function (next) {
-//     if (this.isNew || this.isModified('name')) {
-//         // Check if the document is new or if the name was modified
-//         this.slug = slugify(this.name, { lower: true })
-//     }
-//     next()
-// })
 
 // Virtual to count products associated with the brand
 brandSchema.virtual('productCount', {
@@ -49,6 +41,6 @@ brandSchema.virtual('productCount', {
     count: true,
 })
 
-const Brand = mongoose.model('Brand', brandSchema)
+const Brand = adminDbConnection.model('Brand', brandSchema)
 
 export default Brand

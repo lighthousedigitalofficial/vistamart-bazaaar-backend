@@ -1,8 +1,5 @@
 import mongoose from 'mongoose'
-import slugify from 'slugify'
-import SubCategory from './subCategoryModel.js'
-import SubSubCategory from './subSubCategoryModel.js'
-import Product from './productModel.js'
+import { adminDbConnection } from '../../../config/dbConnections.js'
 
 const categorySchema = new mongoose.Schema(
     {
@@ -53,33 +50,6 @@ categorySchema.virtual('subSubCategories', {
     foreignField: 'mainCategory',
 })
 
-categorySchema.pre('remove', async function (next) {
-    console.log('DELETE MANY 🔥')
-    await SubCategory.deleteMany({ mainCategory: this._id })
-    await SubSubCategory.deleteMany({ mainCategory: this._id })
-    await Product.deleteMany({ category: this._id })
-    next()
-})
-
-categorySchema.post('findByIdAndDelete', async function (doc) {
-    console.log('Delete Many')
-    if (doc) {
-        await mongoose
-            .model('SubCategory')
-            .deleteMany({ mainCategory: doc._id })
-    }
-
-    if (doc) {
-        await mongoose
-            .model('SubSubCategory')
-            .deleteMany({ mainCategory: doc._id })
-    }
-
-    if (doc) {
-        await mongoose.model('Product').deleteMany({ category: doc._id })
-    }
-})
-
-const Category = mongoose.model('Category', categorySchema)
+const Category = adminDbConnection.model('Category', categorySchema)
 
 export default Category

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import slugify from 'slugify'
-import AppError from '../../utils/appError.js'
+import AppError from '../../../utils/appError.js'
 
 const subCategorySchema = new mongoose.Schema(
     {
