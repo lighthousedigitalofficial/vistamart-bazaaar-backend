@@ -4,6 +4,7 @@ import APIFeatures from '../utils/apiFeatures.js'
 import AppError from '../utils/appError.js'
 import catchAsync from '../utils/catchAsync.js'
 import { getCacheKey } from '../utils/helpers.js'
+import mongoose from 'mongoose'
 
 // Check Document fields if they exisit it return data body
 // And if not it return Error
@@ -189,13 +190,12 @@ export const getOne = (Model, popOptions) =>
 // GET All Documents
 export const getAll = (Model, popOptions) =>
     catchAsync(async (req, res, next) => {
-        console.log('GET ALL')
-
         const cacheKey = getCacheKey(Model.modelName, '', req.query)
 
         // Check cache first
         const cacheddoc = await redisClient.get(cacheKey)
-        if (cacheddoc) {
+
+        if (cacheddoc !== null) {
             return res.status(200).json({
                 status: 'success',
                 cached: true,
@@ -256,8 +256,6 @@ export const getOneBySlug = (Model, popOptions) =>
         // If not in cache, fetch from database
         let query = Model.findOne({ slug: req.params.slug })
 
-        console.log(query)
-
         if (popOptions && popOptions?.path) query = query.populate(popOptions)
         const doc = await query
 
@@ -314,6 +312,13 @@ export const deleteOneWithTransaction = (Model, relatedModels = []) =>
             await session.commitTransaction()
             session.endSession()
 
+            const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
+            await redisClient.del(cacheKeyOne)
+
+            // Update cache
+            const cacheKey = getCacheKey(Model.modelName, '', req.query)
+            await redisClient.del(cacheKey)
+
             res.status(204).json({
                 status: 'success',
                 doc: null,
@@ -333,8 +338,6 @@ export const updateStatus = (Model) =>
         if (!req.body.status) {
             return next(new AppError(`Please provide status value.`, 400))
         }
-
-        console.log('Status: ', req.body.status)
 
         // Perform the update operation
         const doc = await Model.findByIdAndUpdate(

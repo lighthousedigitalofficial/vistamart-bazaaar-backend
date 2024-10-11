@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import AppError from './../utils/appError.js'
 
 const couponSchema = new mongoose.Schema(
     {
@@ -16,10 +17,10 @@ const couponSchema = new mongoose.Schema(
         type: {
             type: String,
             enum: [
-                'Discount on Purchase',
-                'Free Delivery',
-                'Buy One Get One',
-                'Others',
+                'discount-on-purchase',
+                'free-delivery',
+                'buy-one-get-one',
+                'others',
             ],
             required: [true, 'Please provide type.'],
         },
@@ -90,6 +91,18 @@ const couponSchema = new mongoose.Schema(
     }
 )
 
+couponSchema.pre(/^find/, function (next) {
+    this.populate({
+        path: 'vendors',
+        select: 'shopName',
+    }).populate({
+        path: 'customers',
+        select: 'firstName lastName',
+    })
+
+    next()
+})
+
 couponSchema.pre('save', async function (next) {
     try {
         // Check if vendors are provided and validate them
@@ -124,15 +137,6 @@ couponSchema.pre('save', async function (next) {
         next(err)
     }
 })
-
-// Pre middleware to populate applicableProducts, applicableVendors,
-// and applicableCustomers before any find operation
-// couponSchema.pre(/^find/, function (next) {
-//     this.populate('applicableProducts')
-//         .populate('applicableVendors')
-//         .populate('applicableCustomers')
-//     next()
-// })
 
 const Coupon = mongoose.model('Coupon', couponSchema)
 

@@ -29,17 +29,13 @@ router.post('/register', signup)
 router.post('/logout', protect, logout)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)
+
 router.put('/update-role', updateRole)
 
 router
     .route('/')
-    .post(
-        protect,
-        restrictTo('admin'),
-        // validateSchema(userValidationSchema),
-        createUser
-    )
-    .get(getUsers)
+    .post(protect, restrictTo('admin'), createUser)
+    .get(protect, restrictTo('admin', 'vendor'), getUsers)
 
 router
     .route('/:id')

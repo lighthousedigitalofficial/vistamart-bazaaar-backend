@@ -1,10 +1,12 @@
+import redisClient from '../config/redisConfig.js'
 import Coupon from '../models/couponModel.js'
 import Order from '../models/orderModel.js'
+import Refund from '../models/refundModel.js'
 import AppError from '../utils/appError.js'
 import catchAsync from '../utils/catchAsync.js'
+import { getCacheKey } from '../utils/helpers.js'
 import {
-    createOne,
-    deleteOne,
+    deleteOneWithTransaction,
     getAll,
     getOne,
     updateStatus,
@@ -70,11 +72,11 @@ export const createOrder = catchAsync(async (req, res, next) => {
         return next(new AppError(`Order could not be created`, 400))
     }
 
-    const cacheKeyOne = getCacheKey(Model.modelName, doc?._id)
+    const cacheKeyOne = getCacheKey('Order', doc?._id)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
 
     // delete all documents caches related to this model
-    const cacheKey = getCacheKey(Model.modelName, '', req.query)
+    const cacheKey = getCacheKey('Order', '', req.query)
     await redisClient.del(cacheKey)
 
     res.status(201).json({
@@ -85,10 +87,45 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
 export const getAllOrders = getAll(Order)
 // Delete an order
-export const deleteOrder = deleteOne(Order)
+
+const relatedModels = [{ model: Refund, foreignKey: 'order' }]
+
+export const deleteOrder = deleteOneWithTransaction(Order, relatedModels)
 
 // Get order by ID
 export const getOrderById = getOne(Order)
 
 // Update an order's status
 export const updateOrderStatus = updateStatus(Order)
+
+export const getOrderByCustomer = catchAsync(async (req, res, next) => {
+    const customerId = req.params.customerId
+
+    // Check cache first
+    const cacheKey = getCacheKey('Order', customerId)
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    const doc = await Order.findOne({ customer: customerId })
+
+    if (!doc) {
+        return next(new AppError(`No Order found with that customer Id`, 404))
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
+})
