@@ -1,13 +1,23 @@
 import mongoose from 'mongoose'
-import AppError from '../utils/appError.js'
+import AppError from '../../utils/appError.js'
 
-const featuredDealSchema = new mongoose.Schema(
+const flashDealSchema = new mongoose.Schema(
     {
         title: {
             type: String,
             required: [true, 'Please provide title.'],
             trim: true,
         },
+        image: {
+            type: String,
+            required: [true, 'Please provide image.'],
+        },
+        products: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Product',
+            },
+        ],
         startDate: {
             type: Date,
             required: [true, 'Please provide start date.'],
@@ -16,17 +26,16 @@ const featuredDealSchema = new mongoose.Schema(
             type: Date,
             required: [true, 'Please provide end date.'],
         },
+
         status: {
             type: String,
-            enum: ['active', 'inactive', 'expired'],
+            enum: ['active', 'expired', 'inactive'],
             default: 'inactive',
         },
-        products: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Product',
-            },
-        ],
+        publish: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         toJSON: { virtuals: true },
@@ -35,7 +44,28 @@ const featuredDealSchema = new mongoose.Schema(
     }
 )
 
-featuredDealSchema.pre('save', async function (next) {
+// Add a virtual field to calculate the total number of products
+flashDealSchema.virtual('activeProducts').get(function () {
+    return this.products.length
+})
+
+flashDealSchema.pre('save', function (next) {
+    // Check if endDate is less than startDate
+    if (this.endDate && this.startDate && this.endDate < this.startDate) {
+        this.status = 'expired'
+    }
+    next()
+})
+
+flashDealSchema.pre(/^find/, function (next) {
+    this.populate({
+        path: 'products',
+        select: 'name price thumbnail userId',
+    })
+    next()
+})
+
+flashDealSchema.pre('save', async function (next) {
     try {
         // Check if products are provided and validate them
         if (this.products && this.products.length > 0) {
@@ -58,18 +88,6 @@ featuredDealSchema.pre('save', async function (next) {
     }
 })
 
-// Add a virtual field to calculate the total number of products
-featuredDealSchema.virtual('activeProducts').get(function () {
-    return this.products.length
-})
+const FlashDeal = mongoose.model('FlashDeal', flashDealSchema)
 
-featuredDealSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'products',
-        select: '-__v -createdAt -updatedAt',
-    })
-    next()
-})
-
-const FeaturedDeal = mongoose.model('FeaturedDeal', featuredDealSchema)
-export default FeaturedDeal
+export default FlashDeal

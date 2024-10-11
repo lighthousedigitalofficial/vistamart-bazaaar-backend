@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import AppError from '../utils/appError.js'
+import AppError from '../../utils/appError.js'
 
 const wishlistSchema = new mongoose.Schema(
     {

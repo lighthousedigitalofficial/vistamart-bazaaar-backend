@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import AppError from '../utils/appError.js'
+import AppError from '../../utils/appError.js'
 
 const productReviewSchema = new mongoose.Schema(
     {
