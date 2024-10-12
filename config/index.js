@@ -4,7 +4,12 @@ dotenv.config()
 
 const config = {
     port: process.env.PORT || 3000,
-    dbURI: process.env.DB_URI,
+    // Databases
+    adminDbURI: process.env.ADMIN_DB_URI,
+    sellerDbURI: process.env.SELLER_DB_URI,
+    userDbURI: process.env.USER_DB_URI,
+    transcationDbURI: process.env.TRANSACTION_DB_URI,
+
     jwtSecret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     jwtAccessTime: process.env.JWT_ACCESS_TIME,

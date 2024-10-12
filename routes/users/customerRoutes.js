@@ -6,7 +6,7 @@ import {
     getCustomers,
     updateCustomer,
     updateCustomerStatus,
-} from './../controllers/customerController.js'
+} from './../../controllers/users/customerController.js'
 import {
     logout,
     loginCustomer,
@@ -14,19 +14,19 @@ import {
     updatePassword,
     forgotPassword,
     resetPassword,
-} from '../controllers/authController.js'
+} from '../../controllers/authController.js'
 import {
     protect,
     restrictTo,
     selectModelByRole,
-} from '../middleware/authMiddleware.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import customerValidationSchema from './../validations/customerValidator.js'
-import { loginLimiter } from '../utils/helpers.js'
+} from '../../middleware/authMiddleware.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import customerValidationSchema from './../../validations/customerValidator.js'
+// import { loginLimiter } from '../../utils/helpers.js'
 
 const router = express.Router()
 
-router.post('/login', loginLimiter, loginCustomer)
+router.post('/login', loginCustomer)
 router.post(
     '/register',
     validateSchema(customerValidationSchema),
@@ -41,8 +41,8 @@ router.put('/reset-password/:token', resetPassword)
 router
     .route('/')
     .post(
-        protect,
-        restrictTo('admin'),
+        // protect,
+        // restrictTo('admin'),
         validateSchema(customerValidationSchema),
         createCustomer
     )

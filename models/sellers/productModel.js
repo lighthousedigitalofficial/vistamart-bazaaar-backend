@@ -1,8 +1,11 @@
 import mongoose from 'mongoose'
 import AppError from '../../utils/appError.js'
-import { adminDbConnection } from '../../config/dbConnections.js'
+import {
+    adminDbConnection,
+    sellerDbConnection,
+} from '../../config/dbConnections.js'
 
-const adminProductSchema = new mongoose.Schema(
+const productSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -113,11 +116,11 @@ const adminProductSchema = new mongoose.Schema(
         },
         ownerId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: [true, 'Please provide owner.'],
+            required: [true, 'Please provide user.'],
         },
         ownerType: {
             type: String,
-            enum: ['in-house'],
+            enum: ['vendor', 'in-house'],
             required: true,
         },
         slug: String,
@@ -140,7 +143,7 @@ const adminProductSchema = new mongoose.Schema(
     }
 )
 
-adminProductSchema.pre('save', async function (next) {
+productSchema.pre('save', async function (next) {
     if (this.category) {
         const category = await adminDbConnection
             .model('Category')
@@ -183,21 +186,21 @@ adminProductSchema.pre('save', async function (next) {
     next()
 })
 
-// // Virtual middleware fetch all the reviews associated with this product
-// productSchema.virtual('reviews', {
-//     ref: 'ProductReview',
-//     localField: '_id',
-//     foreignField: 'product',
-// })
+// Virtual middleware fetch all the reviews associated with this product
+productSchema.virtual('reviews', {
+    ref: 'ProductReview',
+    localField: '_id',
+    foreignField: 'product',
+})
 
-// productSchema.virtual('totalOrders', {
-//     ref: 'Order',
-//     localField: '_id',
-//     foreignField: 'products',
-//     count: true,
-// })
+productSchema.virtual('totalOrders', {
+    ref: 'Order',
+    localField: '_id',
+    foreignField: 'products',
+    count: true,
+})
 
-adminProductSchema.pre(/^find/, function (next) {
+productSchema.pre(/^find/, function (next) {
     this.populate({
         path: 'category',
         select: 'name',
@@ -217,6 +220,12 @@ adminProductSchema.pre(/^find/, function (next) {
     next()
 })
 
-const AdminProduct = adminDbConnection.model('AdminProduct', adminProductSchema)
+productSchema.post('findByIdAndDelete', async function (doc) {
+    if (doc) {
+        await mongoose.model('Review').deleteMany({ product: doc._id })
+    }
+})
 
-export default AdminProduct
+const Product = sellerDbConnection.model('Product', productSchema)
+
+export default Product

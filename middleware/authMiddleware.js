@@ -5,14 +5,14 @@ import { promisify } from 'util'
 import AppError from './../utils/appError.js'
 import catchAsync from './../utils/catchAsync.js'
 
-import User from '../models/userModel.js'
-import Vendor from '../models/vendorModel.js'
-import Customer from '../models/customerModel.js'
+import User from '../models/admin/userModel.js'
+import Customer from '../models/users/customerModel.js'
+import Seller from './../models/sellers/sellerModel.js'
 
 const models = {
     user: User,
     admin: User,
-    vendor: Vendor,
+    seller: Seller,
     customer: Customer,
 }
 

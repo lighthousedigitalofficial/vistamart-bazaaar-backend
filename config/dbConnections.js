@@ -1,21 +1,16 @@
 import mongoose from 'mongoose'
+import config from './index.js'
 
 // UserDB connection
-export const userDbConnection = mongoose.createConnection(
-    process.env.USER_DB_URI
-)
+export const userDbConnection = mongoose.createConnection(config.userDbURI)
 
 // AdminDB connection
-export const adminDbConnection = mongoose.createConnection(
-    process.env.ADMIN_DB_URI
-)
+export const adminDbConnection = mongoose.createConnection(config.adminDbURI)
 
 // TransactionDB connection
 export const transactionDbConnection = mongoose.createConnection(
-    process.env.TRANSACTION_DB_URI
+    config.transcationDbURI
 )
 
 // SellerDB connection
-export const sellerDbConnection = mongoose.createConnection(
-    process.env.SELLER_DB_URI
-)
+export const sellerDbConnection = mongoose.createConnection(config.sellerDbURI)

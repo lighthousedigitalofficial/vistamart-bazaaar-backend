@@ -3,6 +3,8 @@ import * as crypto from 'crypto'
 import validator from 'validator'
 import bcrypt from 'bcryptjs'
 
+import { userDbConnection } from '../../config/dbConnections.js'
+
 const addressSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -139,10 +141,10 @@ customerSchema.pre('save', function (next) {
 // if customer deleted, also Delete all the related reveiws to the customer
 customerSchema.post('findByIdAndDelete', async function (doc) {
     if (doc) {
-        await mongoose.model('Review').deleteMany({ customer: doc._id })
+        await userDbConnection.model('Review').deleteMany({ customer: doc._id })
     }
 })
 
-const Customer = mongoose.model('Customer', customerSchema)
+const Customer = userDbConnection.model('Customer', customerSchema)
 
 export default Customer

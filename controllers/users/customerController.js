@@ -1,4 +1,5 @@
 import redisClient from '../../config/redisConfig.js'
+import Customer from '../../models/users/customerModel.js'
 import catchAsync from '../../utils/catchAsync.js'
 import { getCacheKey } from '../../utils/helpers.js'
 import {

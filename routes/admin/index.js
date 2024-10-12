@@ -14,10 +14,12 @@ import express from 'express'
 // import notification from './notificationRoutes.js'
 
 import employeeRoutes from './employeeRoutes.js'
+import roleRoutes from './roleRoutes.js'
 
 const router = express.Router()
 
 router.use('/employees', employeeRoutes)
+router.use('/roles', roleRoutes)
 
 // router.use('/products', productRoutes)
 // router.use('/brands', brandsRoutes)
