@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import validator from 'validator'
 
-const vendorSchema = new mongoose.Schema(
+const sellerSchema = new mongoose.Schema(
     {
         firstName: {
             type: String,
@@ -72,7 +72,7 @@ const vendorSchema = new mongoose.Schema(
     }
 )
 
-vendorSchema.virtual('totalProducts', {
+sellerSchema.virtual('totalProducts', {
     ref: 'Product',
     localField: '_id',
     foreignField: 'userId',
@@ -80,7 +80,7 @@ vendorSchema.virtual('totalProducts', {
     count: true,
 })
 
-vendorSchema.virtual('totalOrders', {
+sellerSchema.virtual('totalOrders', {
     ref: 'Order',
     localField: '_id',
     foreignField: 'vendors',
@@ -88,7 +88,7 @@ vendorSchema.virtual('totalOrders', {
     count: true,
 })
 
-// vendorSchema.virtual('bank', {
+// sellerSchema.virtual('bank', {
 //     ref: 'VendorBank',
 //     localField: '_id',
 //     foreignField: 'vendor',
@@ -96,14 +96,14 @@ vendorSchema.virtual('totalOrders', {
 //     options: { select: 'holderName accountNumber bankName branch vendor ' },
 // })
 
-vendorSchema.methods.correctPassword = async function (
+sellerSchema.methods.correctPassword = async function (
     candidatePassword,
     userPassword
 ) {
     return await bcrypt.compare(candidatePassword, userPassword)
 }
 
-vendorSchema.methods.changePasswordAfter = function (JWTTimestamp) {
+sellerSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     if (this.passwordChangedAt) {
         const changeTimestamp = parseInt(
             this.passwordChangedAt.getTime() / 1000,
@@ -116,7 +116,7 @@ vendorSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     return false
 }
 
-vendorSchema.methods.createPasswordResetToken = function () {
+sellerSchema.methods.createPasswordResetToken = function () {
     const resetToken = crypto.randomBytes(32).toString('hex')
 
     this.passwordResetToken = crypto
@@ -129,7 +129,7 @@ vendorSchema.methods.createPasswordResetToken = function () {
     return resetToken
 }
 
-vendorSchema.pre('save', async function (next) {
+sellerSchema.pre('save', async function (next) {
     // Only work when the password is not modified
     if (!this.isModified('password')) return next()
 
@@ -139,7 +139,7 @@ vendorSchema.pre('save', async function (next) {
     next()
 })
 
-vendorSchema.post('findByIdAndDelete', async function (doc) {
+sellerSchema.post('findByIdAndDelete', async function (doc) {
     if (doc) {
         await mongoose.model('Product').deleteMany({ userId: doc._id })
     }
@@ -149,6 +149,6 @@ vendorSchema.post('findByIdAndDelete', async function (doc) {
     }
 })
 
-const Vendor = mongoose.model('Vendor', vendorSchema)
+const Vendor = mongoose.model('Vendor', sellerSchema)
 
 export default Vendor

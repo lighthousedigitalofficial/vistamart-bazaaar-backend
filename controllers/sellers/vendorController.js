@@ -1,4 +1,4 @@
-import redisClient from '../config/redisConfig.js'
+import redisClient from '../../config/redisConfig.js'
 
 import Product from '../models/productModel.js'
 import Vendor from '../models/vendorModel.js'
@@ -7,10 +7,10 @@ import {
     getAll,
     getOne,
     updateStatus,
-} from './handleFactory.js'
-import catchAsync from '../utils/catchAsync.js'
-import AppError from '../utils/appError.js'
-import { getCacheKey } from '../utils/helpers.js'
+} from '../handleFactory.js'
+import catchAsync from '../../utils/catchAsync.js'
+import AppError from '../../utils/appError.js'
+import { getCacheKey } from '../../utils/helpers.js'
 
 // Vendor registration (similar to createVendor but may have different logic)
 export const registerVendor = catchAsync(async (req, res) => {

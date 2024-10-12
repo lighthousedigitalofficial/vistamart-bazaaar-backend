@@ -1,7 +1,6 @@
-import redisClient from '../config/redisConfig.js'
-import Customer from '../models/customerModel.js'
-import catchAsync from '../utils/catchAsync.js'
-import { getCacheKey } from '../utils/helpers.js'
+import redisClient from '../../config/redisConfig.js'
+import catchAsync from '../../utils/catchAsync.js'
+import { getCacheKey } from '../../utils/helpers.js'
 import {
     createOne,
     deleteOne,
@@ -9,7 +8,7 @@ import {
     getOne,
     updateOne,
     updateStatus,
-} from './handleFactory.js'
+} from '../handleFactory.js'
 
 export const createCustomer = createOne(Customer)
 export const getCustomers = getAll(Customer)

@@ -1,5 +1,5 @@
 import config from './config/index.js'
-import connectDB from './config/dbConnections.js'
+// import connectDB from './config/dbConnections.js'
 import cron from 'node-cron'
 
 // Import your featured deal model
@@ -7,7 +7,7 @@ import cron from 'node-cron'
 import app from './app.js'
 import FeaturedDeal from './models/admin/deals/featuredDealModel.js'
 
-connectDB()
+// connectDB()
 
 const port = config.port || 3000
 

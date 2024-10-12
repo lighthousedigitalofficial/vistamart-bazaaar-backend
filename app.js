@@ -37,6 +37,13 @@ const app = express()
 //     })
 // )
 
+const corsOptions = {
+    // Allows all origins, CORS will reflect the requesting origin
+    origin: '*',
+    credentials: true,
+    optionSuccessStatus: 200,
+}
+
 app.use(
     cors({
         origin: '*', // Allows all origins, but only for testing
@@ -67,7 +74,7 @@ if (process.env.NODE_ENV === 'development') {
 app.get('/', (req, res) => {
     res.status(200).json({
         status: 'success',
-        message: '❇️ DHA API is running successfully',
+        message: '🛒 Vistamart Bazaar is running successfully',
         timestamp: new Date().toISOString(),
         version: '1.0.0',
     })

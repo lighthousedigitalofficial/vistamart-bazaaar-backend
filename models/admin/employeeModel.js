@@ -1,9 +1,9 @@
 import mongoose from 'mongoose'
 import validator from 'validator'
 import bcrypt from 'bcryptjs'
-import { adminDbConnection } from '../../config/dbConnections'
+import { adminDbConnection } from '../../config/dbConnections.js'
 
-const adminSchema = new mongoose.Schema(
+const employeeSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -28,8 +28,8 @@ const adminSchema = new mongoose.Schema(
             type: String,
         },
         role: {
-            type: String,
-            enum: ['admin'],
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Role',
         },
         password: {
             type: String,
@@ -46,14 +46,22 @@ const adminSchema = new mongoose.Schema(
     }
 )
 
-userSchema.methods.correctPassword = async function (
+employeeSchema.pre(/^find/, function (next) {
+    this.populate({
+        path: 'role',
+        select: 'name',
+    })
+    next()
+})
+
+employeeSchema.methods.correctPassword = async function (
     candidatePassword,
     userPassword
 ) {
     return await bcrypt.compare(candidatePassword, userPassword)
 }
 
-userSchema.pre('save', async function (next) {
+employeeSchema.pre('save', async function (next) {
     // Only work when the password is not modified
     if (!this.isModified('password')) return next()
 
@@ -63,7 +71,7 @@ userSchema.pre('save', async function (next) {
     next()
 })
 
-userSchema.methods.changePasswordAfter = function (JWTTimestamp) {
+employeeSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     if (this.passwordChangedAt) {
         const changeTimestamp = parseInt(
             this.passwordChangedAt.getTime() / 1000,
@@ -76,7 +84,7 @@ userSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     return false
 }
 
-userSchema.methods.createPasswordResetToken = function () {
+employeeSchema.methods.createPasswordResetToken = function () {
     const resetToken = crypto.randomBytes(32).toString('hex')
 
     this.passwordResetToken = crypto
@@ -89,6 +97,6 @@ userSchema.methods.createPasswordResetToken = function () {
     return resetToken
 }
 
-const Admin = adminDbConnection.model('Admin', adminSchema)
+const Employee = adminDbConnection.model('employee', employeeSchema)
 
-export default Admin
+export default Employee

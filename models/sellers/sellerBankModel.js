@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import AppError from '../../../utils/appError.js'
 
-const vendorBankSchema = new mongoose.Schema(
+const sellerBankSchema = new mongoose.Schema(
     {
         vendor: {
             type: mongoose.Schema.Types.ObjectId,
@@ -36,7 +36,7 @@ const vendorBankSchema = new mongoose.Schema(
     }
 )
 
-vendorBankSchema.post('save', async function (next) {
+sellerBankSchema.post('save', async function (next) {
     try {
         const vendor = await mongoose.model('Vendor').findById(this.vendor)
         if (!vendor) {
@@ -51,4 +51,4 @@ vendorBankSchema.post('save', async function (next) {
     }
 })
 
-export default mongoose.model('VendorBank', vendorBankSchema)
+export default mongoose.model('VendorBank', sellerBankSchema)

@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 import AppError from '../../utils/appError.js'
+import { adminDbConnection } from '../../config/dbConnections.js'
 
-const productSchema = new mongoose.Schema(
+const adminProductSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -112,11 +113,11 @@ const productSchema = new mongoose.Schema(
         },
         ownerId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: [true, 'Please provide user.'],
+            required: [true, 'Please provide owner.'],
         },
         ownerType: {
             type: String,
-            enum: ['vendor', 'in-house'],
+            enum: ['in-house'],
             required: true,
         },
         slug: String,
@@ -139,9 +140,9 @@ const productSchema = new mongoose.Schema(
     }
 )
 
-productSchema.pre('save', async function (next) {
+adminProductSchema.pre('save', async function (next) {
     if (this.category) {
-        const category = await mongoose
+        const category = await adminDbConnection
             .model('Category')
             .findById(this.category)
         if (!category) {
@@ -152,7 +153,7 @@ productSchema.pre('save', async function (next) {
     }
 
     if (this.subCategory) {
-        const subCategory = await mongoose
+        const subCategory = await adminDbConnection
             .model('SubCategory')
             .findById(this.subCategory)
 
@@ -164,7 +165,7 @@ productSchema.pre('save', async function (next) {
     }
 
     if (this.subSubCategory) {
-        const subSubCategory = await mongoose
+        const subSubCategory = await adminDbConnection
             .model('SubSubCategory')
             .findById(this.subSubCategory)
 
@@ -175,28 +176,28 @@ productSchema.pre('save', async function (next) {
         }
     }
 
-    const brand = await mongoose.model('Brand').findById(this.brand)
+    const brand = await adminDbConnection.model('Brand').findById(this.brand)
     if (!brand) {
         return next(new AppError('Referenced brand ID does not exist', 400))
     }
     next()
 })
 
-// Virtual middleware fetch all the reviews associated with this product
-productSchema.virtual('reviews', {
-    ref: 'ProductReview',
-    localField: '_id',
-    foreignField: 'product',
-})
+// // Virtual middleware fetch all the reviews associated with this product
+// productSchema.virtual('reviews', {
+//     ref: 'ProductReview',
+//     localField: '_id',
+//     foreignField: 'product',
+// })
 
-productSchema.virtual('totalOrders', {
-    ref: 'Order',
-    localField: '_id',
-    foreignField: 'products',
-    count: true,
-})
+// productSchema.virtual('totalOrders', {
+//     ref: 'Order',
+//     localField: '_id',
+//     foreignField: 'products',
+//     count: true,
+// })
 
-productSchema.pre(/^find/, function (next) {
+adminProductSchema.pre(/^find/, function (next) {
     this.populate({
         path: 'category',
         select: 'name',
@@ -216,12 +217,6 @@ productSchema.pre(/^find/, function (next) {
     next()
 })
 
-productSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Review').deleteMany({ product: doc._id })
-    }
-})
+const AdminProduct = adminDbConnection.model('AdminProduct', adminProductSchema)
 
-const Product = mongoose.model('Product', productSchema)
-
-export default Product
+export default AdminProduct

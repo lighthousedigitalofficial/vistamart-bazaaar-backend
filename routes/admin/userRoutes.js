@@ -6,21 +6,21 @@ import {
     getUsers,
     updateUser,
     updateRole,
-} from './../controllers/userController.js'
+} from '../../controllers/admin/index.js'
 import {
     login,
     signup,
     logout,
     updatePassword,
-} from '../controllers/authController.js'
+} from '../../controllers/authController.js'
 import {
     protect,
     restrictTo,
     selectModelByRole,
-} from '../middleware/authMiddleware.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import userValidationSchema from './../validations/userValidator.js'
-import { loginLimiter } from '../utils/helpers.js'
+} from '../../middleware/authMiddleware.js'
+// import { validateSchema } from '../middleware/validationMiddleware.js'
+// import userValidationSchema from './../validations/userValidator.js'
+// import { loginLimiter } from '../utils/helpers.js'
 
 const router = express.Router()
 
