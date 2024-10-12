@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
-import slugify from 'slugify'
-import AppError from '../../../utils/appError.js'
+import { checkReferenceId } from '../../../utils/helpers.js'
+import { adminDbConnection } from '../../../config/dbConnections.js'
 
 const subCategorySchema = new mongoose.Schema(
     {
@@ -27,12 +27,6 @@ const subCategorySchema = new mongoose.Schema(
     }
 )
 
-subCategorySchema.pre('save', function (next) {
-    this.slug = slugify(this.name, { lower: true })
-    console.log('thelk ', this.slug)
-    next()
-})
-
 subCategorySchema.pre(/^find/, function (next) {
     this.populate({
         path: 'mainCategory',
@@ -42,26 +36,12 @@ subCategorySchema.pre(/^find/, function (next) {
 })
 
 subCategorySchema.pre('save', async function (next) {
-    const category = await mongoose
-        .model('Category')
-        .findById(this.mainCategory)
-
-    if (!category) {
-        return next(new AppError('Referenced category ID does not exist', 400))
-    }
+    checkReferenceId(
+        adminDbConnection.model('Category'),
+        this.mainCategory,
+        next
+    )
     next()
-})
-
-subCategorySchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Product').deleteMany({ subCategory: doc._id })
-    }
-
-    if (doc) {
-        await mongoose
-            .model('SubSubCategory')
-            .deleteMany({ subCategory: doc._id })
-    }
 })
 
 const SubCategory = mongoose.model('SubCategory', subCategorySchema)
