@@ -46,7 +46,10 @@ router
         validateSchema(customerValidationSchema),
         createCustomer
     )
-    .get(protect, restrictTo('admin', 'vendor'), getCustomers)
+    .get(
+        // protect, restrictTo('admin', 'vendor'),
+        getCustomers
+    )
 
 router.put('/status/:id', protect, restrictTo('admin'), updateCustomerStatus)
 

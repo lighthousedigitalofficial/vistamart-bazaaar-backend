@@ -10,7 +10,6 @@ import express from 'express'
 // import featureddeal from './featuredDealRoutes.js'
 // import attributeRoutes from './attributeRoutes.js'
 // import coupons from './couponRoutes.js'
-// import subscriber from './subscriberRoutes.js'
 // import notification from './notificationRoutes.js'
 
 import employeeRoutes from './employeeRoutes.js'
@@ -34,6 +33,5 @@ router.use('/roles', roleRoutes)
 // router.use('/deal-of-day', dealOfDay)
 // router.use('/featured-deals', featureddeal)
 // router.use('/coupons', coupons)
-// router.use('/subscribers', subscriber)
 
 export default router

@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
-import AppError from '../../../utils/appError.js'
+import { checkReferenceId } from '../../utils/helpers.js'
+import { sellerDbConnection } from '../../config/dbConnections.js'
 
-const sellerBankSchema = new mongoose.Schema(
+const vendorBankSchema = new mongoose.Schema(
     {
         vendor: {
             type: mongoose.Schema.Types.ObjectId,
@@ -36,19 +37,17 @@ const sellerBankSchema = new mongoose.Schema(
     }
 )
 
-sellerBankSchema.post('save', async function (next) {
+vendorBankSchema.post('save', async function (next) {
     try {
-        const vendor = await mongoose.model('Vendor').findById(this.vendor)
-        if (!vendor) {
-            return next(
-                new AppError('Referenced vendor ID does not exist', 400)
-            )
-        }
-
+        await checkReferenceId(
+            sellerDbConnection.model('Vendor'),
+            this.vendor,
+            next
+        )
         next()
     } catch (err) {
         next(err)
     }
 })
 
-export default mongoose.model('VendorBank', sellerBankSchema)
+export default sellerDbConnection.model('VendorBank', sellerBankSchema)

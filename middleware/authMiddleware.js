@@ -7,7 +7,7 @@ import catchAsync from './../utils/catchAsync.js'
 
 import User from '../models/admin/userModel.js'
 import Customer from '../models/users/customerModel.js'
-import Seller from './../models/sellers/sellerModel.js'
+import Seller from '../models/sellers/vendorModel.js'
 
 const models = {
     user: User,
@@ -39,6 +39,8 @@ export const protect = catchAsync(async (req, res, next) => {
     ) {
         token = req.headers.authorization.split(' ')[1]
     }
+
+    console.log({ token })
 
     if (!token) {
         return next(

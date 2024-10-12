@@ -1,8 +1,8 @@
 import User from '../models/admin/userModel.js'
 import Customer from './../models/users/customerModel.js'
-import Seller from '../models/sellers/sellerModel.js'
+import Seller from '../models/sellers/vendorModel.js'
 
-import { checkFields } from './handleFactory.js'
+import { checkFields } from '../factory/handleFactory.js'
 import redisClient from '../config/redisConfig.js'
 import catchAsync from '../utils/catchAsync.js'
 import AppError from './../utils/appError.js'
