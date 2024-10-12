@@ -23,26 +23,6 @@ const dealOfTheDaySchema = new mongoose.Schema(
         timestamps: true,
     }
 )
-
-dealOfTheDaySchema.pre('save', async function (next) {
-    const product = await adminDbConnection
-        .model('Product')
-        .findById(this.product)
-
-    if (!product) {
-        return next(new AppError('Referenced product ID does not exist', 400))
-    }
-    next()
-})
-
-dealOfTheDaySchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'product',
-        select: '-__v -createdAt -updatedAt',
-    })
-    next()
-})
-
 const DealOfTheDay = adminDbConnection.model('DealOfTheDay', dealOfTheDaySchema)
 
 export default DealOfTheDay
