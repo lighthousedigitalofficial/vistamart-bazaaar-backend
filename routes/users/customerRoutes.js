@@ -53,10 +53,6 @@ router
 
 router.put('/status/:id', protect, restrictTo('admin'), updateCustomerStatus)
 
-router
-    .route('/:id')
-    .get(protect, getCustomer)
-    .put(protect, updateCustomer)
-    .delete(protect, restrictTo('admin'), deleteCustomer)
+router.route('/:id').get(getCustomer).put(updateCustomer).delete(deleteCustomer)
 
 export default router
