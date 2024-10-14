@@ -1,49 +1,50 @@
-import Category from '../../../models/admin/categories/categoryModel.js'
-import slugify from 'slugify'
+import Category from "../../../models/admin/categories/categoryModel.js";
+import slugify from "slugify";
 import {
-    deleteOneWithTransaction,
-    getAll,
-    getOne,
-    getOneBySlug,
-    updateOne,
-    updateStatus,
-} from '../../../factory/handleFactory.js'
-import catchAsync from '../../../utils/catchAsync.js'
-import { getCacheKey } from '../../../utils/helpers.js'
-import redisClient from '../../../config/redisConfig.js'
+  deleteOneWithTransaction,
+  getAll,
+  getOne,
+  getOneBySlug,
+  updateOne,
+  updateStatus,
+} from "../../../factory/handleFactory.js";
 
-import SubCategory from '../../../models/admin/categories/subCategoryModel.js'
-import SubSubCategory from '../../../models/admin/categories/subSubCategoryModel.js'
-import Product from '../../../models/admin/business/productBusinessModel.js'
+import catchAsync from "../../../utils/catchAsync.js";
+import { getCacheKey } from "../../../utils/helpers.js";
+import redisClient from "../../../config/redisConfig.js";
+
+import SubCategory from "../../../models/admin/categories/subCategoryModel.js";
+import SubSubCategory from "../../../models/admin/categories/subSubCategoryModel.js";
+import Product from "./../../../models/sellers/productModel.js";
 
 // Create a new category
 export const createCategory = catchAsync(async (req, res) => {
-    const { name, priority, logo } = req.body
+  const { name, priority, logo } = req.body;
 
-    const slug = slugify(name, { lower: true })
+  const slug = slugify(name, { lower: true });
 
-    const category = new Category({ name, logo, priority, slug })
-    await category.save()
+  const category = new Category({ name, logo, priority, slug });
+  await category.save();
 
-    if (!category) {
-        return res.status(400).json({
-            status: 'fail',
-            message: `Category could not be created`,
-        })
-    }
+  if (!category) {
+    return res.status(400).json({
+      status: "fail",
+      message: `Category could not be created`,
+    });
+  }
 
-    const cacheKeyOne = getCacheKey('Category', category?._id)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(category))
+  const cacheKeyOne = getCacheKey("Category", category?._id);
+  await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(category));
 
-    // delete all documents caches related to this model
-    const cacheKey = getCacheKey('Category', '', req.query)
-    await redisClient.del(cacheKey)
+  // delete all documents caches related to this model
+  const cacheKey = getCacheKey("Category", "", req.query);
+  await redisClient.del(cacheKey);
 
-    res.status(201).json({
-        status: 'success',
-        doc: category,
-    })
-})
+  res.status(201).json({
+    status: "success",
+    doc: category,
+  });
+});
 
 // export const getCategories = getAll(Category, {
 //     path: [
@@ -61,24 +62,25 @@ export const createCategory = catchAsync(async (req, res) => {
 
 // Get a single category by ID
 
-export const getCategories = getAll(Category)
+export const getCategories = getAll(Category);
 
-export const getCategoryById = getOne(Category)
+export const getCategoryById = getOne(Category);
 
 // Update a category by ID
-export const updateCategory = updateOne(Category)
+export const updateCategory = updateOne(Category);
 // Delete a category by ID
 // Define related models and their foreign keys
 const relatedModels = [
+
     { model: SubCategory, foreignKey: 'mainCategory' },
     { model: SubSubCategory, foreignKey: 'mainCategory' },
     // { model: Product, foreignKey: 'category' },
 ]
 
 // Delete a category by ID
-export const deleteCategory = deleteOneWithTransaction(Category, relatedModels)
+export const deleteCategory = deleteOneWithTransaction(Category, relatedModels);
 
 // Get category by slug
-export const getCategoryBySlug = getOneBySlug(Category)
+export const getCategoryBySlug = getOneBySlug(Category);
 
-export const updateCategoryStatus = updateStatus(Category)
+export const updateCategoryStatus = updateStatus(Category);
