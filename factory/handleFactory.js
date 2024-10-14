@@ -83,7 +83,7 @@ export const updateOne = (Model) =>
             runValidators: true,
         })
 
-        const docName = Model.modelName.toLowerCase() || 'Document'
+        const docName = Model?.modelName?.toLowerCase() || 'Document'
 
         // Handle case where the document was not found
         if (!doc) {

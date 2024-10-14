@@ -1,8 +1,5 @@
 import express from 'express'
 
-// import categoryRoutes from './categoryRoutes.js'
-// import subCategoryRoutes from './subCategoryRoutes.js'
-// import subSubCategoryRoutes from './subSubCategoryRoutes.js'
 // import productRoutes from './productRoutes.js'
 // import colorRoutes from './colorRoutes.js'
 // import banner from './bannerRoutes.js'
@@ -13,8 +10,12 @@ import express from 'express'
 // import notification from './notificationRoutes.js'
 
 import attributeRoutes from './attributeRoutes.js'
+import attributeRoutes from './attributeRoutes.js'
 import employeeRoutes from './employeeRoutes.js'
 import roleRoutes from './roleRoutes.js'
+import categoryRoutes from './categories/categoryRoutes.js'
+import subCategoryRoutes from './categories/subCategoryRoutes.js'
+import subSubCategoryRoutes from './categories/subSubCategoryRoutes.js'
 
 const router = express.Router()
 
@@ -24,9 +25,10 @@ router.use('/attributes', attributeRoutes)
 
 // router.use('/products', productRoutes)
 // router.use('/brands', brandsRoutes)
-// router.use('/categories', categoryRoutes)
-// router.use('/sub-categories', subCategoryRoutes)
-// router.use('/sub-sub-categories', subSubCategoryRoutes)
+router.use('/categories', categoryRoutes)
+router.use('/sub-categories', subCategoryRoutes)
+router.use('/sub-sub-categories', subSubCategoryRoutes)
+router.use('/attributes', attributeRoutes)
 // router.use('/colors', colorRoutes)
 // router.use('/banners', banner)
 // router.use('/notifications', notification)

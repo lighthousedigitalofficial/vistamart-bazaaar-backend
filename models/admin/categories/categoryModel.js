@@ -1,55 +1,55 @@
-import mongoose from 'mongoose'
-import { adminDbConnection } from '../../../config/dbConnections.js'
+import mongoose from "mongoose";
+import { adminDbConnection } from "../../../config/dbConnections.js";
 
 const categorySchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: [true, 'Please provide category name.'],
-            unique: true,
-            trim: true,
-        },
-        logo: {
-            type: String,
-            required: [true, 'Please provide category logo.'],
-        },
-        priority: Number,
-        slug: String,
-        status: {
-            type: String,
-            enum: ['active', 'inactive'],
-            default: 'inactive',
-        },
+  {
+    name: {
+      type: String,
+      required: [true, "Please provide category name."],
+      unique: true,
+      trim: true,
     },
-    {
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
-        timestamps: true,
-    }
-)
+    logo: {
+      type: String,
+      required: [true, "Please provide category logo."],
+    },
+    priority: Number,
+    slug: String,
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "inactive",
+    },
+  },
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+    timestamps: true,
+  }
+);
 
 // Virtual to count products associated with the category
-categorySchema.virtual('productCount', {
-    ref: 'Product',
-    localField: '_id',
-    foreignField: 'category',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
-})
+// categorySchema.virtual('productCount', {
+//     ref: 'Product',
+//     localField: '_id',
+//     foreignField: 'category',
+//     // This tells mongoose to return a count instead of the documents
+//     count: true,
+// })
 
 // Virtual field to populate subcategories and sub-subcategories
-categorySchema.virtual('subCategories', {
-    ref: 'SubCategory',
-    localField: '_id',
-    foreignField: 'mainCategory',
-})
+// categorySchema.virtual('subCategories', {
+//     ref: 'SubCategory',
+//     localField: '_id',
+//     foreignField: 'mainCategory',
+// })
 
-categorySchema.virtual('subSubCategories', {
-    ref: 'SubSubCategory',
-    localField: '_id',
-    foreignField: 'mainCategory',
-})
+// categorySchema.virtual('subSubCategories', {
+//     ref: 'SubSubCategory',
+//     localField: '_id',
+//     foreignField: 'mainCategory',
+// })
 
-const Category = adminDbConnection.model('Category', categorySchema)
+const Category = adminDbConnection.model("Category", categorySchema);
 
-export default Category
+export default Category;
