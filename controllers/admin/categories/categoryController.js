@@ -71,10 +71,11 @@ export const updateCategory = updateOne(Category);
 // Delete a category by ID
 // Define related models and their foreign keys
 const relatedModels = [
-  { model: SubCategory, foreignKey: "mainCategory" },
-  { model: SubSubCategory, foreignKey: "mainCategory" },
-  { model: Product, foreignKey: "category" },
-];
+
+    { model: SubCategory, foreignKey: 'mainCategory' },
+    { model: SubSubCategory, foreignKey: 'mainCategory' },
+    // { model: Product, foreignKey: 'category' },
+]
 
 // Delete a category by ID
 export const deleteCategory = deleteOneWithTransaction(Category, relatedModels);

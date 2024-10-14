@@ -40,8 +40,6 @@ export const protect = catchAsync(async (req, res, next) => {
         token = req.headers.authorization.split(' ')[1]
     }
 
-    console.log({ token })
-
     if (!token) {
         return next(
             new AppError(
@@ -97,6 +95,8 @@ export const protect = catchAsync(async (req, res, next) => {
 
     // 7) GRANT ACCESS TO PROTECTED ROUTE
     req.user = currentUser
+
+    console.log(req.user)
 
     next()
 })

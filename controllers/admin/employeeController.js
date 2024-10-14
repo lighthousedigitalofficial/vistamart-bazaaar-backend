@@ -11,6 +11,7 @@ import {
     getAll,
     getOne,
     updateOne,
+    updateStatus,
 } from './../../factory/handleFactory.js'
 
 export const createEmployee = createOne(Employee)
@@ -18,6 +19,7 @@ export const getEmployees = getAll(Employee)
 export const getEmployeeById = getOne(Employee)
 export const deleteEmployee = deleteOne(Employee)
 export const updateEmployee = updateOne(Employee)
+export const updateEmployeeStatus = updateStatus(Employee)
 
 export const updateRole = catchAsync(async (req, res, next) => {
     const { employeeId, role } = req.body

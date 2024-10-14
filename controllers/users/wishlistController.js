@@ -1,13 +1,13 @@
-import Wishlist from '../models/wishlistModel.js'
-import Product from '../models/productModel.js'
-import Customer from '../models/customerModel.js'
+import Wishlist from '../../models/users/wishlistModel.js'
+import Product from '../../models/sellers/productModel.js'
+import Customer from '../../models/users/customerModel.js'
 
-import { getAll } from './handleFactory.js'
-import catchAsync from '../utils/catchAsync.js'
-import AppError from '../utils/appError.js'
-
+import catchAsync from '../../utils/catchAsync.js'
+import AppError from '../../appError.js'
 import { getCacheKey } from '../utils/helpers.js'
 import redisClient from '../config/redisConfig.js'
+
+import { getAll } from './../../factory/handleFactory.js'
 
 export const getAllWishlists = getAll(Wishlist)
 

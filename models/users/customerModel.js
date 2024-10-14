@@ -59,7 +59,7 @@ const customerSchema = new mongoose.Schema(
             enum: ['customer'],
             default: 'customer',
         },
-        referCode: {
+        referCode: { 
             type: String,
         },
         password: {
