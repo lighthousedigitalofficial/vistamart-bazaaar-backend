@@ -6,6 +6,7 @@ import {
     getEmployees,
     updateEmployee,
     deleteEmployee,
+    updateEmployeeStatus,
 } from '../../controllers/admin/employeeController.js'
 import {
     login,
@@ -45,5 +46,7 @@ router
     .get(getEmployeeById)
     .delete(deleteEmployee)
     .put(updateEmployee)
+
+router.put('/slug/:id', updateEmployeeStatus)
 
 export default router

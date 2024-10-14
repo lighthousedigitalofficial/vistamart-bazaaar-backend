@@ -15,7 +15,7 @@ export const uploadSingleImage = catchAsync(async (req, res, next) => {
     const fileType = req.query.fileType || 'jpeg'
 
     // Allow multiple file types
-    const validFileTypes = ['jpeg', 'png', 'webp', 'gif']
+    const validFileTypes = ['jpeg', 'jpg', 'png', 'webp', 'gif']
 
     if (!validFileTypes.includes(fileType)) {
         return next(new AppError('Invalid file type', 400))
@@ -40,7 +40,7 @@ export const uploadProductImage = catchAsync(async (req, res, next) => {
     const fileType = req.query.fileType || 'jpeg'
 
     // Allow multiple file types
-    const validFileTypes = ['jpeg', 'png', 'webp', 'gif']
+    const validFileTypes = ['jpeg', 'jpg', 'png', 'webp', 'gif']
 
     if (!validFileTypes.includes(fileType)) {
         return next(new AppError('Invalid file type', 400))

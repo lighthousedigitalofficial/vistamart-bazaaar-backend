@@ -5,6 +5,7 @@ import {
     updateBanner,
     deleteBanner,
     getBannerById,
+    updateBannerPublishStatus,
 } from '../../controllers/admin/bannerController.js'
 import checkObjectId from '../../middleware/checkObjectId.js'
 import { protect, restrictTo } from './../../middleware/authMiddleware.js'
@@ -30,5 +31,7 @@ router
         // protect, restrictTo('admin'),
         deleteBanner
     )
+
+router.put('/publish/:id', updateBannerPublishStatus)
 
 export default router

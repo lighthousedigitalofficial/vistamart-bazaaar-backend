@@ -5,6 +5,7 @@ import {
     getAll,
     getOne,
     updateOne,
+    updatePublishStatus,
 } from './../../factory/handleFactory.js'
 
 // Create a new banner
@@ -16,8 +17,10 @@ export const getBannerById = getOne(Banner)
 // Get all banners
 export const getBanners = getAll(Banner)
 
-// Update a banner (including publish field and banner image)
+// Update a banner
 export const updateBanner = updateOne(Banner)
+
+export const updateBannerPublishStatus = updatePublishStatus(Banner)
 
 // Delete a banner
 export const deleteBanner = deleteOne(Banner)

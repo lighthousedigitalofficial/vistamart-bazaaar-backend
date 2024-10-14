@@ -335,7 +335,7 @@ export const deleteOneWithTransaction = (Model, relatedModels = []) =>
         }
     })
 
-// UPDATE One Document
+// UPDATE Status of Document
 export const updateStatus = (Model) =>
     catchAsync(async (req, res, next) => {
         if (!req.body.status) {
@@ -351,6 +351,45 @@ export const updateStatus = (Model) =>
                 runValidators: true,
             }
         )
+
+        const docName = Model.modelName.toLowerCase() || 'Document'
+
+        // Handle case where the document was not found
+        if (!doc) {
+            return next(new AppError(`No ${docName} found with that ID`, 404))
+        }
+
+        const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
+
+        // delete pervious document data
+        await redisClient.del(cacheKeyOne)
+        // updated the cache with new data
+        await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
+
+        // Update cache
+        const cacheKey = getCacheKey(Model.modelName, '', req.query)
+        await redisClient.del(cacheKey)
+
+        res.status(200).json({
+            status: 'success',
+            doc,
+        })
+    })
+
+// UPDATE Publish Status of Document
+export const updatePublishStatus = (Model) =>
+    catchAsync(async (req, res, next) => {
+        if (!req.body.published) {
+            return next(
+                new AppError(`Please provide publish status value.`, 400)
+            )
+        }
+
+        // Perform the update operation
+        const doc = await Model.findByIdAndUpdate(req.params.id, publish, {
+            new: true,
+            runValidators: true,
+        })
 
         const docName = Model.modelName.toLowerCase() || 'Document'
 
