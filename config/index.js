@@ -10,6 +10,12 @@ const config = {
     userDbURI: process.env.USER_DB_URI,
     transcationDbURI: process.env.TRANSACTION_DB_URI,
 
+    // S3 BUCKET KEYS
+    AWSS3BucketName: process.env.AWS_S3_BUCKET_NAME,
+    AWSAccessId: process.env.AWS_ACCESS_ID,
+    AWSSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+
+    // JWT Keys
     jwtSecret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     jwtAccessTime: process.env.JWT_ACCESS_TIME,
