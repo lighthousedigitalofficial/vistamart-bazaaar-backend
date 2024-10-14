@@ -2,6 +2,7 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import morgan from 'morgan'
+
 import globalErrorHandler from './controllers/errorController.js'
 import AppError from './utils/appError.js'
 
@@ -11,7 +12,7 @@ import path, { dirname } from 'path'
 // ROUTES
 import routes from './routes/index.js'
 
-import { cleanCache } from './controllers/handleFactory.js'
+import { cleanCache } from './factory/handleFactory.js'
 import helmet from 'helmet'
 import ExpressMongoSanitize from 'express-mongo-sanitize'
 
@@ -83,7 +84,7 @@ app.get('/', (req, res) => {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // API ROUTES
-app.use('/api', routes)
+app.use('/api/v1', routes)
 
 // Clear all caches
 app.post('/api/clean-cache', cleanCache)

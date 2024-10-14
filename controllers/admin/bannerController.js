@@ -7,8 +7,6 @@ export const createBanner = catchAsync(async (req, res) => {
     const { bannerType, resourceType, resourceId, url, publish, bannerImage } =
         req.body
 
-    // const compressedBannerImage = await compressAndConvertToBase64(bannerImage)
-
     const banner = new Banner({
         bannerType,
         resourceType,

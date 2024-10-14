@@ -6,7 +6,7 @@ import {
     getAll,
     getOne,
     updateOne,
-} from '../handleFactory.js'
+} from '../../factory/handleFactory.js'
 
 // Create a new vendor
 export const createVendorBank = createOne(VendorBank)

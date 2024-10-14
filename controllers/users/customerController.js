@@ -9,7 +9,7 @@ import {
     getOne,
     updateOne,
     updateStatus,
-} from '../handleFactory.js'
+} from '../../factory/handleFactory.js'
 
 export const createCustomer = createOne(Customer)
 export const getCustomers = getAll(Customer)

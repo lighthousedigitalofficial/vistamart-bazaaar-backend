@@ -1,16 +1,19 @@
 import Role from '../../models/admin/roleModel.js'
-import AppError from '../../utils/appError.js'
-import catchAsync from '../../utils/catchAsync.js'
 
-export const createRole = catchAsync(async (req, res, next) => {
-    const doc = await Role.create(req.body)
+import {
+    createOne,
+    deleteOne,
+    getAll,
+    getOne,
+    updateOne,
+} from '../../factory/handleFactory.js'
 
-    if (!doc) {
-        return next(new AppError(`Role could not be created`, 400))
-    }
+export const createRole = createOne(Role)
 
-    res.status(201).json({
-        status: 'success',
-        doc,
-    })
-})
+export const getRoles = getAll(Role)
+
+export const getRoleById = getOne(Role)
+
+export const updateRole = updateOne(Role)
+
+export const deleteRole = deleteOne(Role)

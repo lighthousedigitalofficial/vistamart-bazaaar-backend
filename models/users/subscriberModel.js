@@ -1,20 +1,26 @@
 import mongoose from 'mongoose'
 import validator from 'validator'
+import { userDbConnection } from '../../config/dbConnections.js'
 
-const subscriberSchema = new mongoose.Schema({
-    email: {
-        type: String,
-        required: [true, 'Please provide your email address.'],
-        unique: true,
-        lowercase: true,
-        validate: [validator.isEmail, 'Please provide a valid email address.'],
-        trim: true,
+const subscriberSchema = new mongoose.Schema(
+    {
+        email: {
+            type: String,
+            required: [true, 'Please provide your email address.'],
+            unique: true,
+            lowercase: true,
+            validate: [
+                validator.isEmail,
+                'Please provide a valid email address.',
+            ],
+            trim: true,
+        },
     },
-    subscriptionDate: {
-        type: Date,
-        default: Date.now,
-    },
-})
+    {
+        timestamps: true,
+    }
+)
 
-const Subscriber = mongoose.model('Subscriber', subscriberSchema)
+const Subscriber = userDbConnection.model('Subscriber', subscriberSchema)
+
 export default Subscriber

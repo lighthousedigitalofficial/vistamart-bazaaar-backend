@@ -37,6 +37,11 @@ const employeeSchema = new mongoose.Schema(
             minlength: 8,
             select: false,
         },
+        status: {
+            type: String,
+            enum: ['active', 'inactive'],
+            default: 'inactive',
+        },
         passwordChangedAt: Date,
         passwordResetToken: String,
         passwordResetExpires: Date,

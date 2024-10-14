@@ -7,7 +7,7 @@ import {
     getAll,
     getOne,
     updateStatus,
-} from '../handleFactory.js'
+} from '../../factory/handleFactory.js'
 import catchAsync from '../../utils/catchAsync.js'
 import AppError from '../../utils/appError.js'
 import { getCacheKey } from '../../utils/helpers.js'

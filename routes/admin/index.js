@@ -7,9 +7,9 @@ import express from 'express'
 // import dealOfDay from './dealOfTheDayRoutes.js'
 // import featureddeal from './featuredDealRoutes.js'
 // import coupons from './couponRoutes.js'
-// import subscriber from './subscriberRoutes.js'
 // import notification from './notificationRoutes.js'
 
+import attributeRoutes from './attributeRoutes.js'
 import attributeRoutes from './attributeRoutes.js'
 import employeeRoutes from './employeeRoutes.js'
 import roleRoutes from './roleRoutes.js'
@@ -21,6 +21,7 @@ const router = express.Router()
 
 router.use('/employees', employeeRoutes)
 router.use('/roles', roleRoutes)
+router.use('/attributes', attributeRoutes)
 
 // router.use('/products', productRoutes)
 // router.use('/brands', brandsRoutes)
@@ -35,6 +36,5 @@ router.use('/attributes', attributeRoutes)
 // router.use('/deal-of-day', dealOfDay)
 // router.use('/featured-deals', featureddeal)
 // router.use('/coupons', coupons)
-// router.use('/subscribers', subscriber)
 
 export default router
