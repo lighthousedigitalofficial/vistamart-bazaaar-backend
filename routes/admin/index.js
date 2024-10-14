@@ -10,7 +10,6 @@ import express from 'express'
 // import notification from './notificationRoutes.js'
 
 import attributeRoutes from './attributeRoutes.js'
-import attributeRoutes from './attributeRoutes.js'
 import employeeRoutes from './employeeRoutes.js'
 import roleRoutes from './roleRoutes.js'
 import categoryRoutes from './categories/categoryRoutes.js'

@@ -7,7 +7,7 @@ import {
     getOne,
     getOneBySlug,
     updateOne,
-} from '../../handleFactory.js'
+} from '../../../factory/handleFactory.js'
 
 // Create a new subcategory
 export const createSubCategory = createOne(SubCategory)
