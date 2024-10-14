@@ -42,6 +42,6 @@ const sellerSchema = new mongoose.Schema(
 );
 
 // Create the model using adminDbConnection
-const Seller = adminDbConnection.model("Seller", sellerSchema);
+const SellerBusiness = adminDbConnection.model("SellerBusiness", sellerSchema);
 
-export default Seller;
+export default SellerBusiness;
