@@ -72,7 +72,7 @@ export const updateCategory = updateOne(Category)
 const relatedModels = [
     { model: SubCategory, foreignKey: 'mainCategory' },
     { model: SubSubCategory, foreignKey: 'mainCategory' },
-    { model: Product, foreignKey: 'category' },
+    // { model: Product, foreignKey: 'category' },
 ]
 
 // Delete a category by ID

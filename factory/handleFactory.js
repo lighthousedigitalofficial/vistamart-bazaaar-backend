@@ -295,36 +295,37 @@ export const deleteOneWithTransaction = (Model, relatedModels = []) =>
                 )
             }
 
-            // Delete related documents in a transaction
+            const cacheKeys = []
+
             for (const relatedModel of relatedModels) {
                 const { model, foreignKey } = relatedModel
-                await model
-                    .deleteMany({ [foreignKey]: req.params.id })
-                    .session(session)
 
-                // delete document caches
+                const relatedDocs = await model
+                    .find({ [foreignKey]: req.params.id })
+                    .session(session)
+                if (relatedDocs.length > 0) {
+                    await model
+                        .deleteMany({ [foreignKey]: req.params.id })
+                        .session(session)
+                }
+
                 const cacheKey = getCacheKey(model.modelName.toString(), '')
-                await redisClient.del(cacheKey)
+                cacheKeys.push(cacheKey)
             }
 
-            // Delete the main document
             await doc.deleteOne({ session })
 
-            // Commit the transaction
-            await session.commitTransaction()
+            cacheKeys.push(getCacheKey(Model.modelName, req.params.id))
+            cacheKeys.push(getCacheKey(Model.modelName, '', req.query))
+
+            await Promise.all([
+                session.commitTransaction(),
+                redisClient.del(...cacheKeys),
+            ])
+
             session.endSession()
 
-            const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
-            await redisClient.del(cacheKeyOne)
-
-            // Update cache
-            const cacheKey = getCacheKey(Model.modelName, '', req.query)
-            await redisClient.del(cacheKey)
-
-            res.status(204).json({
-                status: 'success',
-                doc: null,
-            })
+            res.status(204).json({ status: 'success', doc: null })
         } catch (err) {
             await session.abortTransaction()
             session.endSession()

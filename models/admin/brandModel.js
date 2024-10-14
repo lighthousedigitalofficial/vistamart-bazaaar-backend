@@ -37,8 +37,6 @@ brandSchema.virtual('productCount', {
     ref: 'Product',
     localField: '_id',
     foreignField: 'brand',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
 })
 
 const Brand = adminDbConnection.model('Brand', brandSchema)

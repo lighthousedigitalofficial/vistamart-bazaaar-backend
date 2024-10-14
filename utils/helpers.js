@@ -10,13 +10,12 @@ export const getCacheKey = (modelName, id = '', query = {}) => {
 }
 
 export const checkReferenceId = async (Model, foreignKey, next) => {
-    const referenceKey = await mongoose.model(Model).findById(foreignKey)
+    const referenceKey = await Model.findById(foreignKey)
     if (!referenceKey) {
+        const docName = Model?.modelName?.toLowerCase() || 'Document'
+
         return next(
-            new AppError(
-                `Referenced ${Model.toLowerCase()} ID does not exist`,
-                400
-            )
+            new AppError(`Referenced ${docName} ID does not exist`, 400)
         )
     }
 }
