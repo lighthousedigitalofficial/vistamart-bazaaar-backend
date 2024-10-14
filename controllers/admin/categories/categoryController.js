@@ -8,13 +8,14 @@ import {
     updateOne,
     updateStatus,
 } from '../../../factory/handleFactory.js'
+
 import catchAsync from '../../../utils/catchAsync.js'
 import { getCacheKey } from '../../../utils/helpers.js'
 import redisClient from '../../../config/redisConfig.js'
 
 import SubCategory from '../../../models/admin/categories/subCategoryModel.js'
 import SubSubCategory from '../../../models/admin/categories/subSubCategoryModel.js'
-import Product from '../../../models/admin/business/productBusinessModel.js'
+import Product from './../../../models/sellers/productModel.js'
 
 // Create a new category
 export const createCategory = catchAsync(async (req, res) => {
