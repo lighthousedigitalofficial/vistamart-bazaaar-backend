@@ -1,4 +1,4 @@
-import SubCategory from '../models/subCategoryModel.js'
+import SubCategory from '../../../models/admin/categories/subCategoryModel.js'
 
 import {
     createOne,
@@ -7,7 +7,7 @@ import {
     getOne,
     getOneBySlug,
     updateOne,
-} from './handleFactory.js'
+} from '../../handleFactory.js'
 
 // Create a new subcategory
 export const createSubCategory = createOne(SubCategory)
