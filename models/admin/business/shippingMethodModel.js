@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import AppError from '../../../utils/appError.js'; // Import AppError for error handling
+import AppError from '../../../utils/appError.js'; 
 import { adminDbConnection } from '../../../config/dbConnections.js';
 
 const shippingMethodSchema = new mongoose.Schema(

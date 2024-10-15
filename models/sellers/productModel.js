@@ -1,9 +1,9 @@
-import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
+import mongoose from "mongoose";
+import AppError from "../../utils/appError.js";
 import {
-    adminDbConnection,
-    sellerDbConnection,
-} from '../../config/dbConnections.js'
+  adminDbConnection,
+  sellerDbConnection,
+} from "../../config/dbConnections.js";
 
 const productSchema = new mongoose.Schema(
     {
@@ -140,75 +140,79 @@ const productSchema = new mongoose.Schema(
             required: [true, 'Number of reviews are required.'],
             default: 0,
         },
+
     },
-    {
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
-        timestamps: true,
+   
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+    timestamps: true,
+  }
+);
+
+productSchema.pre("save", async function (next) {
+  if (this.category) {
+    const category = await adminDbConnection
+      .model("Category")
+      .findById(this.category);
+    if (!category) {
+      return next(new AppError("Referenced category ID does not exist", 400));
     }
-)
+  }
 
-productSchema.pre('save', async function (next) {
-    if (this.category) {
-        const category = await adminDbConnection
-            .model('Category')
-            .findById(this.category)
-        if (!category) {
-            return next(
-                new AppError('Referenced category ID does not exist', 400)
-            )
-        }
+  if (this.subCategory) {
+    const subCategory = await adminDbConnection
+      .model("SubCategory")
+      .findById(this.subCategory);
+
+    if (!subCategory) {
+      return next(
+        new AppError("Referenced subCategory ID does not exist", 400)
+      );
     }
+  }
 
-    if (this.subCategory) {
-        const subCategory = await adminDbConnection
-            .model('SubCategory')
-            .findById(this.subCategory)
+  if (this.subSubCategory) {
+    const subSubCategory = await adminDbConnection
+      .model("SubSubCategory")
+      .findById(this.subSubCategory);
 
-        if (!subCategory) {
-            return next(
-                new AppError('Referenced subCategory ID does not exist', 400)
-            )
-        }
+    if (!subSubCategory) {
+      return next(
+        new AppError("Referenced subSubCategory ID does not exist", 400)
+      );
     }
+  }
 
-    if (this.subSubCategory) {
-        const subSubCategory = await adminDbConnection
-            .model('SubSubCategory')
-            .findById(this.subSubCategory)
-
-        if (!subSubCategory) {
-            return next(
-                new AppError('Referenced subSubCategory ID does not exist', 400)
-            )
-        }
-    }
-
-    const brand = await adminDbConnection.model('Brand').findById(this.brand)
-    if (!brand) {
-        return next(new AppError('Referenced brand ID does not exist', 400))
-    }
-    next()
-})
+  const brand = await adminDbConnection.model("Brand").findById(this.brand);
+  if (!brand) {
+    return next(new AppError("Referenced brand ID does not exist", 400));
+  }
+  next();
+});
 
 // Virtual middleware fetch all the reviews associated with this product
-productSchema.virtual('reviews', {
-    ref: 'ProductReview',
-    localField: '_id',
-    foreignField: 'product',
-})
+productSchema.virtual("reviews", {
+  ref: "ProductReview",
+  localField: "_id",
+  foreignField: "product",
+});
 
-productSchema.virtual('totalOrders', {
-    ref: 'Order',
-    localField: '_id',
-    foreignField: 'products',
-    count: true,
-})
+productSchema.virtual("totalOrders", {
+  ref: "Order",
+  localField: "_id",
+  foreignField: "products",
+  count: true,
+});
 
 productSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'category',
-        select: 'name',
+  this.populate({
+    path: "category",
+    select: "name",
+  })
+    .populate({
+      path: "brand",
+      select: "name",
     })
         .populate({
             path: 'brand',
@@ -229,12 +233,13 @@ productSchema.pre(/^find/, function (next) {
     next()
 })
 
-productSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Review').deleteMany({ product: doc._id })
-    }
-})
 
-const Product = sellerDbConnection.model('Product', productSchema)
+productSchema.post("findByIdAndDelete", async function (doc) {
+  if (doc) {
+    await mongoose.model("Review").deleteMany({ product: doc._id });
+  }
+});
 
-export default Product
+const Product = sellerDbConnection.model("Product", productSchema);
+
+export default Product;

@@ -1,6 +1,6 @@
 import Joi from "joi";
 
-const customerValidationSchema = Joi.object({
+const customerBusinessValidationSchema = Joi.object({
   customerWallet: Joi.string()
     .valid("active", "inactive")
     .default("inactive")
@@ -54,13 +54,13 @@ const customerValidationSchema = Joi.object({
       "any.only":
         "Add funds to wallet status must be either active or inactive",
     }),
-  miniAddFundAmount: Joi.number().min(0).default(200).required().messages({
+  minimumAddFundAmount: Joi.number().min(0).default(200).required().messages({
     "any.required": "Please provide the minimum amount to add to the wallet",
     "number.base": "Minimum add fund amount must be a number",
     "number.min": "Minimum add fund amount cannot be negative",
   }),
-  maxAddFundAmount: Joi.number()
-    .min(Joi.ref("miniAddFundAmount"))
+  maximumAddFundAmount: Joi.number()
+    .min(Joi.ref("minimumAddFundAmount"))
     .default(5000)
     .required()
     .messages({
@@ -69,28 +69,36 @@ const customerValidationSchema = Joi.object({
       "number.min":
         "Maximum add fund amount must be greater than or equal to the minimum add fund amount",
     }),
-  oneUnitCurrency: Joi.number().min(0).default(0).required().messages({
-    "any.required":
-      "Please provide the equivalent points for 1 unit of currency",
-    "number.base": "Equivalent points must be a number",
-    "number.min": "Equivalent points cannot be negative",
-  }),
-  loyaltyPoint: Joi.number().min(0).default(0).required().messages({
+  equivalentPointToOneUnitCurrency: Joi.number()
+    .min(0)
+    .default(0)
+    .required()
+    .messages({
+      "any.required":
+        "Please provide the equivalent points for 1 unit of currency",
+      "number.base": "Equivalent points must be a number",
+      "number.min": "Equivalent points cannot be negative",
+    }),
+    loyaltyPointEarnOnEachOrder: Joi.number().min(0).default(0).required().messages({
     "any.required":
       "Please provide the percentage of loyalty points earned on each order",
     "number.base": "Loyalty points earned on each order must be a number",
     "number.min": "Loyalty points percentage cannot be negative",
   }),
-  miniPointToConvert: Joi.number().min(0).default(0).required().messages({
-    "any.required": "Please provide the minimum points required to convert",
-    "number.base": "Minimum points required must be a number",
-    "number.min": "Minimum points required cannot be negative",
-  }),
-  earningsToEachRef: Joi.number().min(0).default(50).required().messages({
+  minimumPointRequiredToConvert: Joi.number()
+    .min(0)
+    .default(0)
+    .required()
+    .messages({
+      "any.required": "Please provide the minimum points required to convert",
+      "number.base": "Minimum points required must be a number",
+      "number.min": "Minimum points required cannot be negative",
+    }),
+  earningsToEachReferral: Joi.number().min(0).default(50).required().messages({
     "any.required": "Please provide the earnings amount for each referral",
     "number.base": "Earnings amount must be a number",
     "number.min": "Earnings amount cannot be negative",
   }),
 });
 
-export default customerValidationSchema;
+export default customerBusinessValidationSchema;

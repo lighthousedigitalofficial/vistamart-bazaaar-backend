@@ -6,12 +6,11 @@ import {
     getEmployees,
     updateEmployee,
     deleteEmployee,
+    updateEmployeeStatus,
+    employeeLogin,
 } from '../../controllers/admin/employeeController.js'
-import {
-    login,
-    logout,
-    updatePassword,
-} from '../../controllers/authController.js'
+
+import { logout, updatePassword } from '../../controllers/authController.js'
 
 import {
     protect,
@@ -24,26 +23,22 @@ import {
 
 const router = express.Router()
 
-router.post('/login', login)
+router.post('/login', employeeLogin)
 router.post('/logout', protect, logout)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)
 
 router
-    .route(
-        '/'
-        // protect, restrictTo('admin')
-    )
-    .post(createEmployee)
-    .get(getEmployees)
+    .route('/')
+    .post(protect, restrictTo('admin'), createEmployee)
+    .get(protect, restrictTo('admin'), getEmployees)
 
 router
-    .route(
-        '/:id'
-        // protect, restrictTo('admin')
-    )
-    .get(getEmployeeById)
-    .delete(deleteEmployee)
-    .put(updateEmployee)
+    .route('/:id')
+    .get(protect, restrictTo('admin'), getEmployeeById)
+    .delete(protect, restrictTo('admin'), deleteEmployee)
+    .put(protect, restrictTo('admin'), updateEmployee)
+
+router.put('/status/:id', protect, restrictTo('admin'), updateEmployeeStatus)
 
 export default router

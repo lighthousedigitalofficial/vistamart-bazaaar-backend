@@ -6,23 +6,22 @@ import {
     updateCoupon,
     updateCouponStatus,
     deleteCoupon,
-} from '../controllers/couponController.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
+} from '../../controllers/admin/couponController.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
+
 const router = express.Router()
 
 router
     .route('/')
     .post(protect, restrictTo('admin', 'vendor'), createCoupon)
-    .get(getAllCoupons)
+    .get(protect, getAllCoupons)
 
 router
     .route('/:id')
     .get(getCouponById)
-    .put(protect, restrictTo('admin', 'vendor'), updateCoupon)
-    .delete(protect, restrictTo('admin', 'vendor'), deleteCoupon)
+    .put(protect, restrictTo('admin'), updateCoupon)
+    .delete(protect, restrictTo('admin'), deleteCoupon)
 
-router
-    .route('/:id/status')
-    .put(protect, restrictTo('admin', 'vendor'), updateCouponStatus)
+router.put('/status/:id', protect, restrictTo('admin'), updateCouponStatus)
 
 export default router

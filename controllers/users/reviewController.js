@@ -1,10 +1,7 @@
-import redisClient from '../config/redisConfig.js'
+import redisClient from '../../config/redisConfig.js'
 
-import ProductReview from './../models/productReviewModel.js'
-import Product from '../models/productModel.js'
-
-import AppError from '../utils/appError.js'
-import catchAsync from '../utils/catchAsync.js'
+import AppError from '../../utils/appError.js'
+import catchAsync from '../../utils/catchAsync.js'
 import {
     deleteOne,
     getAll,
@@ -13,6 +10,8 @@ import {
     updateStatus,
 } from './handleFactory.js'
 import { getCacheKey } from '../utils/helpers.js'
+import ProductReview from './../../models/users/productReviewModel'
+import Product from '../../models/sellers/productModel.js'
 
 export const createProductReview = catchAsync(async (req, res, next) => {
     const { productId, review, rating } = req.body

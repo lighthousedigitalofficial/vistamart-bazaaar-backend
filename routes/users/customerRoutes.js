@@ -41,18 +41,19 @@ router.put('/reset-password/:token', resetPassword)
 router
     .route('/')
     .post(
-        // protect,
-        // restrictTo('admin'),
+        protect,
+        restrictTo('admin'),
         validateSchema(customerValidationSchema),
         createCustomer
     )
-    .get(
-        // protect, restrictTo('admin', 'vendor'),
-        getCustomers
-    )
+    .get(protect, restrictTo('admin', 'vendor'), getCustomers)
 
 router.put('/status/:id', protect, restrictTo('admin'), updateCustomerStatus)
 
-router.route('/:id').get(getCustomer).put(updateCustomer).delete(deleteCustomer)
+router
+    .route('/:id')
+    .get(getCustomer)
+    .put(protect, restrictTo('admin', 'customer'), updateCustomer)
+    .delete(protect, restrictTo('admin', 'customer'), deleteCustomer)
 
 export default router
