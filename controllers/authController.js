@@ -17,16 +17,21 @@ import {
 import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
 
-const createSendToken = catchAsync(async (user, statusCode, res) => {
+export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
     const { accessToken } = await loginService(user)
 
     // set cookie options
+
+    // Set cookie options for refresh token (secure & httpOnly)
     const cookieOptions = {
         expires: new Date(
             Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-        ),
-        httpOnly: true,
+        ), // Convert days to milliseconds
+        httpOnly: true, // Prevent JS access to cookie
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        // sameSite: "strict", // CSRF protection
+        sameSite: 'None',
     }
 
     // In production mode: we set to secure = true
@@ -35,6 +40,7 @@ const createSendToken = catchAsync(async (user, statusCode, res) => {
     // do not show the password to client side
     user.password = undefined
 
+    // Store refresh token in an HTTP-only cookie
     res.cookie('jwt', accessToken, cookieOptions)
 
     res.status(statusCode).json({
@@ -184,7 +190,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        const resetURL = `http://localhost:3000/users/resetPassword/${resetToken}`
+        const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
 
         // Get the user's IP address
         const ipAddress = req.ip

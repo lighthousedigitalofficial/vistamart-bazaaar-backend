@@ -1,14 +1,14 @@
 import express from 'express'
-import path from 'path'
 import {
     createBanner,
     getBanners,
     updateBanner,
     deleteBanner,
     getBannerById,
-} from '../controllers/bannerController.js'
-import checkObjectId from '../middleware/checkObjectId.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
+    updateBannerPublishStatus,
+} from '../../controllers/admin/bannerController.js'
+import checkObjectId from '../../middleware/checkObjectId.js'
+import { protect, restrictTo } from './../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
@@ -22,5 +22,12 @@ router
     .get(getBannerById)
     .put(protect, restrictTo('admin'), updateBanner)
     .delete(protect, restrictTo('admin'), deleteBanner)
+
+router.put(
+    '/publish/:id',
+    protect,
+    restrictTo('admin'),
+    updateBannerPublishStatus
+)
 
 export default router

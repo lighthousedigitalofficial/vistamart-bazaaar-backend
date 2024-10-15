@@ -55,7 +55,6 @@ const productSchema = new mongoose.Schema(
         tags: [String],
         price: {
             type: Number,
-           
         },
         discount: {
             type: Number,
@@ -102,7 +101,7 @@ const productSchema = new mongoose.Schema(
             {
                 attribute: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Attribute', 
+                    ref: 'Attribute',
                 },
                 price: {
                     type: Number,

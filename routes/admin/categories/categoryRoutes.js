@@ -1,34 +1,40 @@
-import express from 'express'
+import express from "express";
+
 import {
-    createCategory,
-    getCategories,
-    getCategoryById,
-    updateCategory,
-    deleteCategory,
-    getCategoryBySlug,
-    updateCategoryStatus,
-} from '../controllers/categoryController.js'
-import { validateSchema } from './../middleware/validationMiddleware.js'
-import categoryValidationSchema from './../validations/categoryValidator.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
+  createCategory,
+  deleteCategory,
+  getCategories,
+  getCategoryById,
+  getCategoryBySlug,
+  updateCategory,
+  updateCategoryStatus,
+} from "./../../../controllers/admin/categories/categoryController.js";
 
-const router = express.Router()
+import { validateSchema } from "../../../middleware/validationMiddleware.js";
+import categoryValidationSchema from "./../../../validations/admin/categories/categoryValidator.js";
+import { protect, restrictTo } from "./../../../middleware/authMiddleware.js";
 
-router
-    .route('/')
-    .post(protect, validateSchema(categoryValidationSchema), createCategory)
-    .get(getCategories)
+const router = express.Router();
 
 router
-    .route('/:id')
-    .get(getCategoryById)
-    .put(protect, restrictTo('admin'), updateCategory)
-    .delete(protect, restrictTo('admin'), deleteCategory)
+  .route("/")
+  .post(validateSchema(categoryValidationSchema), createCategory)
+  //   .post(protect, validateSchema(categoryValidationSchema), createCategory)
 
-router.route('/slug/:slug').get(getCategoryBySlug)
+  .get(getCategories);
 
 router
-    .route('/:id/status')
-    .put(protect, restrictTo('admin'), updateCategoryStatus)
+  .route("/:id")
+  .get(getCategoryById)
+  .put(updateCategory)
+  // .put(protect, restrictTo("admin"), updateCategory)
+  // .delete(protect, restrictTo("admin"), deleteCategory);
+  .delete(deleteCategory);
 
-export default router
+router.route("/slug/:slug").get(getCategoryBySlug);
+
+router
+  .route("/:id/status")
+  .put(protect, restrictTo("admin"), updateCategoryStatus);
+
+export default router;

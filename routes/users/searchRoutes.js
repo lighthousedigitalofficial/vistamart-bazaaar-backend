@@ -1,8 +1,8 @@
-import express from "express";
-import { advancedSearch } from "../controllers/searchController.js";
+import express from 'express'
+import { advancedSearch } from '../../controllers/users/searchController.js'
 
-const router = express.Router();
+const router = express.Router()
 
-router.get("/", advancedSearch);
+router.get('/', advancedSearch)
 
-export default router;
+export default router

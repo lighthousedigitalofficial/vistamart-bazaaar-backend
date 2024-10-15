@@ -1,6 +1,6 @@
 import Joi from "joi";
 
-const orderValidationSchema = Joi.object({
+const orderBusinessValidationSchema = Joi.object({
   orderDeliveryVerification: Joi.string()
     .valid("active", "inactive")
     .required()
@@ -57,4 +57,4 @@ const orderValidationSchema = Joi.object({
   }),
 });
 
-export default orderValidationSchema;
+export default orderBusinessValidationSchema;

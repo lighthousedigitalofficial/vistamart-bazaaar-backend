@@ -1,5 +1,8 @@
 import mongoose from 'mongoose'
 import AppError from '../../utils/appError.js'
+import Customer from './customerModel.js'
+
+import { userDbConnection } from '../../config/dbConnections.js'
 
 const wishlistSchema = new mongoose.Schema(
     {
@@ -25,13 +28,6 @@ const wishlistSchema = new mongoose.Schema(
     }
 )
 
-// Virtual field for vendor bank (if needed)
-wishlistSchema.virtual('vendorBank', {
-    ref: 'VendorBank',
-    localField: '_id',
-    foreignField: 'vendor',
-})
-
 // Calculate total products before saving the data
 wishlistSchema.pre('save', function (next) {
     this.totalProducts = this.products.length
@@ -55,15 +51,7 @@ wishlistSchema.pre(/^find/, function (next) {
 wishlistSchema.pre('save', async function (next) {
     try {
         // Check if customer exists
-        const customer = await mongoose
-            .model('Customer')
-            .findById(this.customer)
-
-        if (!customer) {
-            return next(
-                new AppError('Referenced customer ID does not exist', 400)
-            )
-        }
+        await checkReferenceId(Customer, this.customer, next)
 
         // Check if products exist and validate them
         if (this.products && this.products.length > 0) {
@@ -86,6 +74,6 @@ wishlistSchema.pre('save', async function (next) {
     }
 })
 
-const Wishlist = mongoose.model('Wishlist', wishlistSchema)
+const Wishlist = userDbConnection.model('Wishlist', wishlistSchema)
 
 export default Wishlist

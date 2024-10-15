@@ -1,4 +1,4 @@
-import SubSubCategory from '../models/subSubCategoryModel.js'
+import SubSubCategory from '../../../models/admin/categories/subSubCategoryModel.js'
 import {
     createOne,
     deleteOne,
@@ -6,7 +6,7 @@ import {
     getOne,
     getOneBySlug,
     updateOne,
-} from './handleFactory.js'
+} from '../../../factory/handleFactory.js'
 
 // Create a new sub-subcategory
 

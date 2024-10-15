@@ -1,5 +1,10 @@
 import mongoose from 'mongoose'
-import slugify from 'slugify'
+import { adminDbConnection } from '../../../config/dbConnections.js'
+
+import Category from './categoryModel.js'
+import SubCategory from './subCategoryModel.js'
+
+import { checkReferenceId } from '../../../utils/helpers.js'
 
 const subSubCategorySchema = new mongoose.Schema(
     {
@@ -39,32 +44,17 @@ subSubCategorySchema.pre(/^find/, function (next) {
     next()
 })
 
-subSubCategorySchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Product').deleteMany({ subSubCategory: doc._id })
-    }
-})
-
 subSubCategorySchema.pre('save', async function (next) {
-    const category = await mongoose
-        .model('Category')
-        .findById(this.mainCategory)
+    await checkReferenceId(Category, this.mainCategory, next)
 
-    if (!category) {
-        return next(new AppError('Referenced category ID does not exist', 400))
-    }
-    const subCategory = await mongoose
-        .model('SubCategory')
-        .findById(this.subCategory)
+    await checkReferenceId(SubCategory, this.subCategory, next)
 
-    if (!subCategory) {
-        return next(
-            new AppError('Referenced sub category ID does not exist', 400)
-        )
-    }
     next()
 })
 
-const SubSubCategory = mongoose.model('SubSubCategory', subSubCategorySchema)
+const SubSubCategory = adminDbConnection.model(
+    'SubSubCategory',
+    subSubCategorySchema
+)
 
 export default SubSubCategory

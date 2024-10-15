@@ -33,22 +33,20 @@ categorySchema.virtual('productCount', {
     ref: 'Product',
     localField: '_id',
     foreignField: 'category',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
 })
 
 // Virtual field to populate subcategories and sub-subcategories
-categorySchema.virtual('subCategories', {
-    ref: 'SubCategory',
-    localField: '_id',
-    foreignField: 'mainCategory',
-})
+// categorySchema.virtual('subCategories', {
+//     ref: 'SubCategory',
+//     localField: '_id',
+//     foreignField: 'mainCategory',
+// })
 
-categorySchema.virtual('subSubCategories', {
-    ref: 'SubSubCategory',
-    localField: '_id',
-    foreignField: 'mainCategory',
-})
+// categorySchema.virtual('subSubCategories', {
+//     ref: 'SubSubCategory',
+//     localField: '_id',
+//     foreignField: 'mainCategory',
+// })
 
 const Category = adminDbConnection.model('Category', categorySchema)
 
