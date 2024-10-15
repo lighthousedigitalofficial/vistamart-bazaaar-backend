@@ -17,7 +17,7 @@ import {
 import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
 
-const createSendToken = catchAsync(async (user, statusCode, res) => {
+export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
     const { accessToken } = await loginService(user)
 

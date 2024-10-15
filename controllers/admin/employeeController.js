@@ -1,6 +1,7 @@
 import Employee from '../../models/admin/employeeModel.js'
 import AppError from '../../utils/appError.js'
 import catchAsync from '../../utils/catchAsync.js'
+import { createSendToken } from '../authController.js'
 
 import redisClient from '../../config/redisConfig.js'
 import { getCacheKey } from '../../utils/helpers.js'
@@ -13,6 +14,27 @@ import {
     updateOne,
     updateStatus,
 } from './../../factory/handleFactory.js'
+
+export const employeeLogin = catchAsync(async (req, res, next) => {
+    const { email, password } = req.body
+
+    console.log(req.body)
+
+    // 1) Check if email and password exists
+    if (!email || !password) {
+        return next(new AppError('Please provide email and password', 400))
+    }
+
+    // 2) Check the user exists && password is correct
+    const user = await Employee.findOne({ email }).select('+password')
+
+    if (!user || !(await user.correctPassword(password, user.password))) {
+        return next(new AppError('Incorrect email or password', 401))
+    }
+
+    // 3) If everything is Ok, then send the response to client
+    createSendToken(user, 200, res)
+})
 
 export const createEmployee = createOne(Employee)
 export const getEmployees = getAll(Employee)
