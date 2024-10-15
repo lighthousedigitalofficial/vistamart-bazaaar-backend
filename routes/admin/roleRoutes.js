@@ -1,10 +1,10 @@
 import express from 'express'
-import { createRole } from '../../controllers/admin/roleController.js'
+import { createRole,getRoles } from '../../controllers/admin/roleController.js'
 
 const router = express.Router()
 
 router.route('/').post(createRole)
-//  .get(getRoles)
+ .get(getRoles)
 
 // router
 //     .route('/:id')

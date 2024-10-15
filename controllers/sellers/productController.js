@@ -1,6 +1,8 @@
 import mongoose from 'mongoose'
-
+import { adminDbConnection } from '../../config/dbConnections.js'
 import Product from '../models/productModel.js'
+import Vendor from "../../models/sellers/vendorModel.js"
+import User from "../../models/users/customerModel.js"
 import catchAsync from '../utils/catchAsync.js'
 import {
     deleteOneWithTransaction,
@@ -29,7 +31,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         sku,
         unit,
         tags,
-        price,
+        price, 
         discount,
         discountType,
         discountAmount,
@@ -40,36 +42,51 @@ export const createProduct = catchAsync(async (req, res, next) => {
         stock,
         isFeatured,
         colors,
-        attributes,
-        size,
+        attributes, 
+        attributePrices, 
         videoLink,
         userId,
         userType,
     } = req.body
 
+    // Check for the user (vendor or admin)
     if (userType === 'vendor') {
-        const vendor = await mongoose.model('Vendor').findById(userId)
-
+        const vendor = await Vendor.model('Vendor').findById(userId)
         if (!vendor) {
             return next(new AppError('Referenced vendor does not exist', 400))
         }
     } else if (userType === 'admin') {
-        const user = await mongoose.model('User').findById(userId)
-
+        const user = await User.model('User').findById(userId)
         if (!user) {
             return next(new AppError('Referenced user does not exist', 400))
         }
     }
 
-    let updatedDiscountAmount = discountAmount
+    // Fetch attributes from another database (adminDbConnection)
+    const fetchedAttributes = await adminDbConnection
+        .model('Attribute')
+        .find({ _id: { $in: attributes } })
 
-    if (discountType === 'flat') {
-        // If the discount type is flat, use the given discountAmount
-        updatedDiscountAmount = discountAmount
-    } else if (discountType === 'percent') {
-        // If the discount type is percent, calculate the discount percentage
-        updatedDiscountAmount = (price * discount) / 100
+    // Validate that all provided attributes exist
+    if (fetchedAttributes.length !== attributes.length) {
+        return next(new AppError('One or more attributes do not exist', 400))
     }
+
+    // Prepare attributePrices array by validating provided attribute IDs
+    const attributePricing = attributePrices.map((attrPrice) => {
+        const foundAttribute = fetchedAttributes.find(
+            (attr) => attr._id.toString() === attrPrice.attribute
+        )
+        if (!foundAttribute) {
+            return next(
+                new AppError(`Attribute ID ${attrPrice.attribute} does not exist`, 400)
+            )
+        }
+        return {
+            attribute: attrPrice.attribute, 
+            price: attrPrice.price, 
+        }
+    })
 
     const newProduct = new Product({
         name,
@@ -83,10 +100,10 @@ export const createProduct = catchAsync(async (req, res, next) => {
         sku,
         unit,
         tags,
-        price,
+        price, 
         discount,
         discountType,
-        discountAmount: updatedDiscountAmount,
+        discountAmount,
         taxAmount,
         taxIncluded,
         minimumOrderQty,
@@ -95,15 +112,15 @@ export const createProduct = catchAsync(async (req, res, next) => {
         isFeatured: isFeatured || false,
         colors: [colors],
         attributes: [attributes],
-        size,
         videoLink,
         userId,
         userType,
-        thumbnail,
-        images,
+        attributePrices: attributePricing, 
         slug: slugify(name, { lower: true }),
     })
+
     await newProduct.save()
+
 
     const cacheKeyOne = getCacheKey('Product', newProduct?._id)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct))
@@ -211,8 +228,8 @@ export const sellProduct = catchAsync(async (req, res) => {
 })
 
 // Update product details
-export const updateProduct = catchAsync(async (req, res) => {
-    const productId = req.params.id
+export const updateProduct = catchAsync(async (req, res, next) => {
+    const productId = req.params.id;
 
     const {
         name,
@@ -226,7 +243,7 @@ export const updateProduct = catchAsync(async (req, res) => {
         sku,
         unit,
         tags,
-        price,
+        price, // Base price or default price if no attribute price
         discount,
         discountType,
         discountAmount,
@@ -237,23 +254,44 @@ export const updateProduct = catchAsync(async (req, res) => {
         stock,
         isFeatured,
         colors,
-        attributes,
+        attributes, // Assuming attributes like 'small', 'medium', 'large'
         size,
         videoLink,
         userId,
         userType,
-    } = req.body
+    } = req.body;
 
-    let updatedDiscountAmount = discountAmount
+    // Initialize discount calculation
+    let updatedDiscountAmount = discountAmount;
 
+    // Calculate discount if needed
     if (discountType === 'flat') {
-        // If the discount type is flat, use the given discountAmount
-        updatedDiscountAmount = discountAmount
+        updatedDiscountAmount = discountAmount;
     } else if (discountType === 'percent') {
-        // If the discount type is percent, calculate the discount percentage
-        updatedDiscountAmount = (price * discount) / 100
+        updatedDiscountAmount = (price * discount) / 100;
     }
 
+    // Fetch prices based on selected attributes (e.g., size or color)
+    let finalPrice = price; // Start with the base price
+
+    if (attributes && attributes.length > 0) {
+        const attributePricePromises = attributes.map(async (attributeId) => {
+            // Fetch attribute from the Attribute model (from another DB)
+            const attribute = await adminDbConnection.model('Attribute').findById(attributeId);
+            if (!attribute) {
+                return next(new AppError('Invalid attribute selected', 400));
+            }
+            // Assume attribute has a `priceModifier` field to adjust the price
+            return attribute.priceModifier || 0;
+        });
+
+        const attributePriceModifiers = await Promise.all(attributePricePromises);
+
+        // Sum all the attribute-based price modifiers to get the final price
+        finalPrice = price + attributePriceModifiers.reduce((total, modifier) => total + modifier, 0);
+    }
+
+    // Update the product with new values and calculated final price
     const updatedProduct = await Product.findByIdAndUpdate(
         productId,
         {
@@ -268,7 +306,7 @@ export const updateProduct = catchAsync(async (req, res) => {
             sku,
             unit,
             tags,
-            price,
+            price: finalPrice, // Set the updated final price
             discount,
             discountType,
             discountAmount: updatedDiscountAmount,
@@ -279,26 +317,27 @@ export const updateProduct = catchAsync(async (req, res) => {
             stock,
             isFeatured,
             colors: [colors],
-            attributes: [attributes],
+            attributes: [attributes], // Store attribute IDs
             size,
             videoLink,
             userId,
             userType,
-            status: 'pending',
+            status: 'pending', // Reset status after update
             slug: slugify(name, { lower: true }),
         },
         { new: true }
-    )
+    );
 
-    const cacheKeyOne = getCacheKey('Product', updatedProduct?._id)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(updatedProduct))
+    // Update cache for the product
+    const cacheKeyOne = getCacheKey('Product', updatedProduct?._id);
+    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(updatedProduct));
 
-    // Update cache
-    const cacheKey = getCacheKey('Product', '', req.query)
-    await redisClient.del(cacheKey)
+    // Invalidate product list cache
+    const cacheKey = getCacheKey('Product', '', req.query);
+    await redisClient.del(cacheKey);
 
     res.status(200).json({
         status: 'success',
         doc: updatedProduct,
-    })
-})
+    });
+});

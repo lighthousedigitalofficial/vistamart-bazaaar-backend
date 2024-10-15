@@ -98,10 +98,17 @@ const productSchema = new mongoose.Schema(
                 ref: 'Color',
             },
         ],
-        attributes: [
+        attributePrices: [
             {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Attribute',
+                attribute: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Attribute', // Reference to the attribute model
+                    required: [true, 'Please provide an attribute'],
+                },
+                price: {
+                    type: Number,
+                    required: [true, 'Please provide a price for this attribute'],
+                },
             },
         ],
         thumbnail: String,
@@ -215,6 +222,10 @@ productSchema.pre(/^find/, function (next) {
         })
         .populate({
             path: 'subSubCategory',
+            select: 'name',
+        })
+        .populate({
+            path: 'attributePrices.attribute',
             select: 'name',
         })
     next()
