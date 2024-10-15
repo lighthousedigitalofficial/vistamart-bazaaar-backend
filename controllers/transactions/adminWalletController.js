@@ -1,11 +1,11 @@
-import catchAsync from '../utils/catchAsync.js'
-import Order from '../models/orderModel.js'
-import Wallet from '../models/adminWalletModel.js'
-import Product from '../models/productModel.js'
-import Customer from '../models/customerModel.js'
-import Vendor from '../models/vendorModel.js'
-import AppError from '../utils/appError.js'
+import Wallet from '../../models/transactions/adminWalletModel.js';
 import mongoose from 'mongoose'
+import catchAsync from '../../utils/catchAsync.js';
+import Order from '../../models/transactions/orderModel.js';
+import Product from '../../models/admin/business/productBusinessModel.js';
+import Customer from '../../models/users/customerModel.js';
+import Vendor from '../../models/sellers/vendorModel.js';
+import AppError from '../../utils/appError.js';
 
 export const getBusinessAnalytics = catchAsync(async (req, res, next) => {
     //Get total orders count

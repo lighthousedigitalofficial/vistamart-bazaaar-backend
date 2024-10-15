@@ -2,9 +2,9 @@ import express from 'express'
 
 import adminRoutes from './admin/index.js'
 import userRoutes from './users/index.js'
-import sellerRoutes from './sellers/index.js'
-// import transcationRoutes from './transcationRoutes/index.js'
 import uploadRoutes from './uploadRoutes.js'
+import transactionRoutes from './transactions/index.js'
+import sellerRoutes from './sellers/index.js'
 
 const router = express.Router()
 
@@ -21,6 +21,6 @@ router.use('/user', userRoutes)
 router.use('/seller', sellerRoutes)
 
 // TRANSACTION DB ROUTES
-// router.use('/transcation', transcationRoutes)
+router.use('/transaction', transactionRoutes)
 
 export default router
