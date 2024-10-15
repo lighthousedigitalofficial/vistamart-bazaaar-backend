@@ -39,6 +39,6 @@ router
     .delete(protect, restrictTo('admin'), deleteEmployee)
     .put(protect, restrictTo('admin'), updateEmployee)
 
-router.put('/slug/:id', protect, restrictTo('admin'), updateEmployeeStatus)
+router.put('/status/:id', protect, restrictTo('admin'), updateEmployeeStatus)
 
 export default router
