@@ -1,5 +1,3 @@
-import VendorBank from '../models/vendorBankModel.js'
-import Vendor from '../models/vendorModel.js'
 import {
     createOne,
     deleteOne,
@@ -7,6 +5,7 @@ import {
     getOne,
     updateOne,
 } from '../../factory/handleFactory.js'
+import VendorBank from '../../models/sellers/vendorBankModel.js'
 
 // Create a new vendor
 export const createVendorBank = createOne(VendorBank)
