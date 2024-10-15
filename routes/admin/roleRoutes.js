@@ -1,12 +1,5 @@
 import express from 'express'
-<<<<<<< HEAD
-import { createRole } from '../../controllers/admin/roleController.js'
 
-const router = express.Router()
-
-router.route('/').post(createRole)
-//  .get(getRoles)
-=======
 import {
     createRole,
     deleteRole,
@@ -22,7 +15,7 @@ router
     .route('/')
     .post(protect, restrictTo('admin'), createRole)
     .get(protect, restrictTo('admin'), getRoles)
->>>>>>> 7007a795fbf642690ef3157bef3c559ba6f24c88
+
 
 router
     .route('/:id')

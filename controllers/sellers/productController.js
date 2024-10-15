@@ -20,163 +20,97 @@ import AppError from "../utils/appError.js";
 import Wishlist from "../models/wishlistModel.js";
 
 // Create a new product
+// Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
     const {
-        name,
-        description,
-        category,
-        subCategory,
-        subSubCategory,
-        brand,
-        productType,
-        digitalProductType,
-        sku,
-        unit,
-        tags,
-        price, 
-        discount,
-        discountType,
-        discountAmount,
-        taxAmount,
-        taxIncluded,
-        minimumOrderQty,
-        shippingCost,
-        stock,
-        isFeatured,
-        colors,
-        attributes, 
-        attributePrices, 
-        videoLink,
-        userId,
-        userType,
-    } = req.body
-
+      name, description, category, subCategory, subSubCategory, brand, productType,
+      digitalProductType, sku, unit, tags, price, discount, discountType, discountAmount,
+      taxAmount, taxIncluded, minimumOrderQty, shippingCost, stock, isFeatured, colors,
+      attributes, attributePrices, videoLink, userId, userType,
+    } = req.body;
+  
+    let user;
+  
     // Check for the user (vendor or admin)
     if (userType === 'vendor') {
-        const vendor = await Vendor.model('Vendor').findById(userId)
-        if (!vendor) {
-            return next(new AppError('Referenced vendor does not exist', 400))
-        }
+      user = await Vendor.findById(userId);
+      if (!user) {
+        return next(new AppError('Referenced vendor does not exist', 400));
+      }
     } else if (userType === 'admin') {
-        const user = await User.model('User').findById(userId)
-        if (!user) {
-            return next(new AppError('Referenced user does not exist', 400))
-        }
-
-  } else if (userType === "admin") {
-    const user = await mongoose.model("User").findById(userId);
-
-    // Fetch attributes from another database (adminDbConnection)
+      user = await User.findById(userId);
+      if (!user) {
+        return next(new AppError('Referenced user does not exist', 400));
+      }
+    } else {
+      return next(new AppError('Invalid userType provided', 400));
+    }
+  
+    // Fetch and validate attributes from another database (adminDbConnection)
     const fetchedAttributes = await adminDbConnection
-        .model('Attribute')
-        .find({ _id: { $in: attributes } })
-
-    // Validate that all provided attributes exist
+      .model('Attribute')
+      .find({ _id: { $in: attributes } });
+  
     if (fetchedAttributes.length !== attributes.length) {
-        return next(new AppError('One or more attributes do not exist', 400))
-
-  }
-
-    // Prepare attributePrices array by validating provided attribute IDs
+      return next(new AppError('One or more attributes do not exist', 400));
+    }
+  
+    // Validate provided attribute IDs and prices
     const attributePricing = attributePrices.map((attrPrice) => {
-        const foundAttribute = fetchedAttributes.find(
-            (attr) => attr._id.toString() === attrPrice.attribute
-        )
-        if (!foundAttribute) {
-            return next(
-                new AppError(`Attribute ID ${attrPrice.attribute} does not exist`, 400)
-            )
-        }
-        return {
-            attribute: attrPrice.attribute, 
-            price: attrPrice.price, 
-        }
-    })
-
+      const foundAttribute = fetchedAttributes.find(attr => attr._id.toString() === attrPrice.attribute);
+      if (!foundAttribute) {
+        return next(new AppError(`Attribute ID ${attrPrice.attribute} does not exist`, 400));
+      }
+      return { attribute: attrPrice.attribute, price: attrPrice.price };
+    });
+  
+    // Create new product
     const newProduct = new Product({
-        name,
-        description,
-        category,
-        subCategory,
-        subSubCategory,
-        brand,
-        productType,
-        digitalProductType,
-        sku,
-        unit,
-        tags,
-        price, 
-        discount,
-        discountType,
-        discountAmount,
-        taxAmount,
-        taxIncluded,
-        minimumOrderQty,
-        shippingCost,
-        stock,
-        isFeatured: isFeatured || false,
-        colors: [colors],
-        attributes: [attributes],
-        videoLink,
-        userId,
-        userType,
-        attributePrices: attributePricing, 
-        slug: slugify(name, { lower: true }),
-    })
-
-    await newProduct.save()
-
-
-    const cacheKeyOne = getCacheKey('Product', newProduct?._id)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct))
-
-
-  const newProduct = new Product({
-    name,
-    description,
-    category,
-    subCategory,
-    subSubCategory,
-    brand,
-    productType,
-    digitalProductType,
-    sku,
-    unit,
-    tags,
-    price,
-    discount,
-    discountType,
-    discountAmount: updatedDiscountAmount,
-    taxAmount,
-    taxIncluded,
-    minimumOrderQty,
-    shippingCost,
-    stock,
-    isFeatured: isFeatured || false,
-    colors: [colors],
-    attributes: [attributes],
-    size,
-    videoLink,
-    userId,
-    userType,
-    thumbnail,
-    images,
-    slug: slugify(name, { lower: true }),
+      name,
+      description,
+      category,
+      subCategory,
+      subSubCategory,
+      brand,
+      productType,
+      digitalProductType,
+      sku,
+      unit,
+      tags,
+      price,
+      discount,
+      discountType,
+      discountAmount,
+      taxAmount,
+      taxIncluded,
+      minimumOrderQty,
+      shippingCost,
+      stock,
+      isFeatured: isFeatured || false,
+      colors: colors ? [colors] : [],
+      attributes: fetchedAttributes.map(attr => attr._id),
+      attributePrices: attributePricing,
+      videoLink,
+      userId,
+      userType,
+      slug: slugify(name, { lower: true }),
+    });
+  
+    await newProduct.save();
+  
+    const cacheKeyOne = getCacheKey('Product', newProduct._id);
+    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct));
+  
+    // Invalidate product list cache
+    const cacheKey = getCacheKey('Product', '', req.query);
+    await redisClient.del(cacheKey);
+  
+    res.status(201).json({
+      status: 'success',
+      doc: newProduct,
+    });
   });
-  await newProduct.save();
-
-  const cacheKeyOne = getCacheKey("Product", newProduct?._id);
-  await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct));
-
-  // Update cache
-  const cacheKey = getCacheKey("Product", "", req.query);
-  await redisClient.del(cacheKey);
-
-  res.status(201).json({
-    status: "success",
-    doc: newProduct,
-  });
-});
+  
 
 export const updateProductImages = catchAsync(async (req, res) => {
   const productId = req.params.id;
