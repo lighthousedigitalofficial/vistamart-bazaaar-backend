@@ -40,9 +40,6 @@ const sendErrorDev = (err, res) => {
 }
 
 const sendErrorProd = (err, res) => {
-    // Log the error
-    logger.error(err.message)
-
     if (err.isOperational) {
         res.status(err.statusCode).json({
             status: err.status,

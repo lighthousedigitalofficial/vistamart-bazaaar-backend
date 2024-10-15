@@ -5,14 +5,14 @@ import { promisify } from 'util'
 import AppError from './../utils/appError.js'
 import catchAsync from './../utils/catchAsync.js'
 
-import User from '../models/userModel.js'
-import Vendor from '../models/vendorModel.js'
-import Customer from '../models/customerModel.js'
+import Customer from '../models/users/customerModel.js'
+import Seller from '../models/sellers/vendorModel.js'
+import Employee from '../models/admin/employeeModel.js'
 
 const models = {
-    user: User,
-    admin: User,
-    vendor: Vendor,
+    employee: Employee,
+    admin: Employee,
+    seller: Seller,
     customer: Customer,
 }
 
@@ -64,7 +64,7 @@ export const protect = catchAsync(async (req, res, next) => {
     }
 
     // 4) Determine the model based on the user role in the token
-    const userRole = decoded.role // Assume role is included in the token payload
+    const userRole = decoded.role.name // Assume role is included in the token payload
     const Model = models[userRole]
 
     if (!Model) {
@@ -104,7 +104,7 @@ export const restrictTo = (...roles) => {
     return (req, res, next) => {
         // roles is array: ['admin']
 
-        if (!roles.includes(req.user.role)) {
+        if (!roles.includes(req.user?.role?.name)) {
             return next(
                 new AppError(
                     'You do not have permission to perform this action.',

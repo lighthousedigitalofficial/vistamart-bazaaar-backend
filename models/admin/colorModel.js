@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { adminDbConnection } from '../../config/dbConnections.js'
 
 const colorSchema = new mongoose.Schema(
     {
@@ -17,6 +18,6 @@ const colorSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-const Color = mongoose.model('Color', colorSchema)
+const Color = adminDbConnection.model('Color', colorSchema)
 
 export default Color

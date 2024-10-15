@@ -1,8 +1,8 @@
-import User from '../models/userModel.js'
-import Customer from './../models/customerModel.js'
-import Vendor from '../models/vendorModel.js'
+import User from '../models/admin/userModel.js'
+import Customer from './../models/users/customerModel.js'
+import Seller from '../models/sellers/vendorModel.js'
 
-import { checkFields } from './handleFactory.js'
+import { checkFields } from '../factory/handleFactory.js'
 import redisClient from '../config/redisConfig.js'
 import catchAsync from '../utils/catchAsync.js'
 import AppError from './../utils/appError.js'
@@ -17,16 +17,21 @@ import {
 import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
 
-const createSendToken = catchAsync(async (user, statusCode, res) => {
+export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
     const { accessToken } = await loginService(user)
 
     // set cookie options
+
+    // Set cookie options for refresh token (secure & httpOnly)
     const cookieOptions = {
         expires: new Date(
             Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-        ),
-        httpOnly: true,
+        ), // Convert days to milliseconds
+        httpOnly: true, // Prevent JS access to cookie
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        // sameSite: "strict", // CSRF protection
+        sameSite: 'None',
     }
 
     // In production mode: we set to secure = true
@@ -35,6 +40,7 @@ const createSendToken = catchAsync(async (user, statusCode, res) => {
     // do not show the password to client side
     user.password = undefined
 
+    // Store refresh token in an HTTP-only cookie
     res.cookie('jwt', accessToken, cookieOptions)
 
     res.status(statusCode).json({
@@ -138,7 +144,7 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
     createSendToken(newCustomer, 201, res)
 })
 
-export const loginVendor = catchAsync(async (req, res, next) => {
+export const loginSeller = catchAsync(async (req, res, next) => {
     const { email, password } = req.body
 
     // 1) Check if email and password exists
@@ -146,26 +152,26 @@ export const loginVendor = catchAsync(async (req, res, next) => {
         return next(new AppError('Please provide email and password', 400))
     }
 
-    // 2) Check the vendor exists && password is correct
-    const vendor = await Vendor.findOne({ email }).select('+password')
+    // 2) Check the Seller exists && password is correct
+    const seller = await Seller.findOne({ email }).select('+password')
 
-    if (!vendor || !(await vendor.correctPassword(password, vendor.password))) {
+    if (!seller || !(await seller.correctPassword(password, seller.password))) {
         return next(new AppError('Incorrect email or password', 401))
     }
 
     // 3) If everything is Ok, then send the response to client
-    createSendToken(vendor, 200, res)
+    createSendToken(seller, 200, res)
 })
 
-export const VendorSignup = catchAsync(async (req, res, next) => {
-    const data = checkFields(Vendor, req, next)
-    const newVendor = await Vendor.create(data)
+export const sellerSignup = catchAsync(async (req, res, next) => {
+    const data = checkFields(Seller, req, next)
+    const newSeller = await Seller.create(data)
 
     // delete pervious cache
-    const cacheKey = getCacheKey(Vendor, '', req.query)
+    const cacheKey = getCacheKey('Seller', '', req.query)
     await redisClient.del(cacheKey)
 
-    createSendToken(newVendor, 201, res)
+    createSendToken(newSeller, 201, res)
 })
 
 export const forgotPassword = catchAsync(async (req, res, next) => {
@@ -184,7 +190,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        const resetURL = `http://localhost:3000/users/resetPassword/${resetToken}`
+        const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
 
         // Get the user's IP address
         const ipAddress = req.ip

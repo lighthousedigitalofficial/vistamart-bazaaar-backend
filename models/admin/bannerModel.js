@@ -1,9 +1,29 @@
 import mongoose from 'mongoose'
+import { adminDbConnection } from '../../config/dbConnections.js'
+
+import Product from './../sellers/productModel.js'
+import Category from './categories/categoryModel.js'
+import Brand from './brandModel.js'
+import Vendor from '../sellers/vendorModel.js'
+
+// Mapping resourceType to respective models
+const resourceModelMap = {
+    product: Product,
+    category: Category,
+    brand: Brand,
+    shop: Vendor,
+}
 
 const bannerSchema = new mongoose.Schema(
     {
         bannerType: {
             type: String,
+            enum: [
+                'main-banner',
+                'popup-banner',
+                'main-section-banner',
+                'footer-banner',
+            ],
             required: [true, 'Please provide banner type.'],
         },
         resourceType: {
@@ -12,7 +32,7 @@ const bannerSchema = new mongoose.Schema(
             required: [true, 'Please provide resource type.'],
         },
         resourceId: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
             required: [true, 'Pleaese provide resource id.'],
         },
         url: {
@@ -32,5 +52,23 @@ const bannerSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-const Banner = mongoose.model('Banner', bannerSchema)
+bannerSchema.pre(/^find/, function (next) {
+    // Get the resourceType and resourceId from the query (or the document in case of save)
+    // Or this.resourceType if using save/validate hook
+    const resourceType = this.getFilter().resourceType
+
+    // Map the resourceType to the corresponding model
+    if (resourceType && resourceModelMap[resourceType]) {
+        // Populate the resourceId with the corresponding model based on resourceType
+        this.populate({
+            path: 'resourceId',
+            model: resourceModelMap[resourceType], // Dynamically choose the model
+        })
+    }
+
+    next()
+})
+
+const Banner = adminDbConnection.model('Banner', bannerSchema)
+
 export default Banner
