@@ -14,7 +14,12 @@ const router = express.Router()
 
 router
     .route('/')
-    .post(validateSchema(colorValidationSchema), createColor)
+    .post(
+        protect,
+        restrictTo('admin'),
+        validateSchema(colorValidationSchema),
+        createColor
+    )
     .get(getColors)
 
 router
