@@ -55,7 +55,7 @@ const productSchema = new mongoose.Schema(
         tags: [String],
         price: {
             type: Number,
-            required: [true, 'Please provide Price'],
+           
         },
         discount: {
             type: Number,
@@ -102,12 +102,10 @@ const productSchema = new mongoose.Schema(
             {
                 attribute: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Attribute', // Reference to the attribute model
-                    required: [true, 'Please provide an attribute'],
+                    ref: 'Attribute', 
                 },
                 price: {
                     type: Number,
-                    required: [true, 'Please provide a price for this attribute'],
                 },
             },
         ],
