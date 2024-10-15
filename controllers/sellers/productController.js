@@ -1,32 +1,35 @@
 
 import mongoose from 'mongoose'
-import { adminDbConnection } from '../../config/dbConnections.js'
-import Product from '../models/productModel.js'
+import Product from '../../models/sellers/productModel.js'
 import Vendor from "../../models/sellers/vendorModel.js"
-import User from "../../models/users/customerModel.js"
-import catchAsync from '../utils/catchAsync.js'
-
+import User from '../../models/admin/employeeModel.js'
+import Color from './../../models/admin/colorModel.js'
+import catchAsync from '../../utils/catchAsync.js'
+import Attribute from '../../models/admin/attributeModel.js'
 import {
   deleteOneWithTransaction,
   getAll,
   getOne,
   getOneBySlug,
   updateStatus,
-} from "./handleFactory.js";
-import { getCacheKey } from "../utils/helpers.js";
-import redisClient from "../config/redisConfig.js";
+  deleteOne
+} from "../../factory/handleFactory.js";
+import { getCacheKey } from "../../utils/helpers.js";
+import redisClient from "../../config/redisConfig.js";
 import slugify from "slugify";
-import AppError from "../utils/appError.js";
-import Wishlist from "../models/wishlistModel.js";
-
-// Create a new product
+import AppError from "../../utils/appError.js";
+import Wishlist from "../../models/users/wishlistModel.js";
+import Brand from '../../models/admin/brandModel.js'
+import Category from '../../models/admin/categories/categoryModel.js'
+import SubCategory from '../../models/admin/categories/subCategoryModel.js'
+import SubSubCategory from '../../models/admin/categories/subSubCategoryModel.js'
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
-    const {
+    let {
       name, description, category, subCategory, subSubCategory, brand, productType,
       digitalProductType, sku, unit, tags, price, discount, discountType, discountAmount,
-      taxAmount, taxIncluded, minimumOrderQty, shippingCost, stock, isFeatured, colors,
-      attributes, attributePrices, videoLink, userId, userType,
+      taxAmount, taxIncluded, minimumOrderQty, shippingCost, stock, isFeatured, colors, images,
+      attributePrices = [], videoLink, userId, userType,
     } = req.body;
   
     let user;
@@ -46,32 +49,84 @@ export const createProduct = catchAsync(async (req, res, next) => {
       return next(new AppError('Invalid userType provided', 400));
     }
   
-    // Fetch and validate attributes from another database (adminDbConnection)
-    const fetchedAttributes = await adminDbConnection
-      .model('Attribute')
-      .find({ _id: { $in: attributes } });
-  
-    if (fetchedAttributes.length !== attributes.length) {
-      return next(new AppError('One or more attributes do not exist', 400));
-    }
-  
-    // Validate provided attribute IDs and prices
-    const attributePricing = attributePrices.map((attrPrice) => {
-      const foundAttribute = fetchedAttributes.find(attr => attr._id.toString() === attrPrice.attribute);
-      if (!foundAttribute) {
-        return next(new AppError(`Attribute ID ${attrPrice.attribute} does not exist`, 400));
-      }
-      return { attribute: attrPrice.attribute, price: attrPrice.price };
+    // Check if the product with the same name and attribute already exists
+    const existingProduct = await Product.findOne({
+      name,
+      'attributePrices.attribute': { $in: attributePrices.map(attrPrice => attrPrice.attribute) },
     });
   
-    // Create new product
+    if (existingProduct) {
+      return next(new AppError('Product with the same name and attribute already exists', 400));
+    }
+  
+    // Fetch the brand ObjectId from the Brand model using the provided brand name
+    const brandDoc = await Brand.findById(brand);
+    if (!brandDoc) {
+      return next(new AppError('Referenced brand does not exist', 400));
+    }
+  
+    // Fetch the category ObjectId from the Category model
+    const categoryDoc = await Category.findById(category);
+    if (!categoryDoc) {
+      return next(new AppError('Referenced category does not exist', 400));
+    }
+  
+    // Fetch the subCategory and subSubCategory if they exist
+    let subCategoryDoc = await SubCategory.findById(subCategory);
+    if (!subCategoryDoc) {
+      subCategoryDoc = null;
+    }
+  
+    let subSubCategoryDoc = await SubSubCategory.findById(subSubCategory);
+    if (!subSubCategoryDoc) {
+      subSubCategoryDoc = null;
+    }
+  
+    // Fetch the color by ID
+    let colorDoc = null;
+    if (colors && colors.length > 0) {
+      colorDoc = await Color.find({ _id: { $in: colors } });
+      if (colorDoc.length === 0) {
+        return next(new AppError('Provided colors do not exist', 400));
+      }
+    }
+  
+    // Handle attribute pricing
+    let attributePricing = [];
+    if (attributePrices.length > 0) {
+      const attributeIds = attributePrices.map(attrPrice => attrPrice.attribute);
+      const fetchedAttributes = await Attribute.find({ _id: { $in: attributeIds } });
+  
+      if (fetchedAttributes.length !== attributeIds.length) {
+        return next(new AppError('One or more provided attributes do not exist', 400));
+      }
+  
+      // Map attribute prices correctly
+      for (let i = 0; i < attributePrices.length; i++) {
+        const attrPrice = attributePrices[i];
+        const attributeName = fetchedAttributes.find(attr => attr._id.toString() === attrPrice.attribute);
+  
+        if (attributeName) {
+          attributePricing.push({
+            attribute: attributeName._id,
+            name: attributeName.name,
+            price: attrPrice.price,
+          });
+        }
+      }
+    } else {
+      attributePricing = [{ attribute: null, name: null, price: price }];
+    }
+  attributePrices = attributePricing
+  userId = user
+
     const newProduct = new Product({
       name,
       description,
-      category,
-      subCategory,
-      subSubCategory,
-      brand,
+      category: categoryDoc,
+      subCategory: subCategoryDoc,
+      subSubCategory: subSubCategoryDoc,
+      brand: brandDoc,
       productType,
       digitalProductType,
       sku,
@@ -86,10 +141,10 @@ export const createProduct = catchAsync(async (req, res, next) => {
       minimumOrderQty,
       shippingCost,
       stock,
+      images,
       isFeatured: isFeatured || false,
-      colors: colors ? [colors] : [],
-      attributes: fetchedAttributes.map(attr => attr._id),
-      attributePrices: attributePricing,
+      colors: colorDoc || [],
+      attributePrices,
       videoLink,
       userId,
       userType,
@@ -98,10 +153,11 @@ export const createProduct = catchAsync(async (req, res, next) => {
   
     await newProduct.save();
   
+
     const cacheKeyOne = getCacheKey('Product', newProduct._id);
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct));
   
-    // Invalidate product list cache
+
     const cacheKey = getCacheKey('Product', '', req.query);
     await redisClient.del(cacheKey);
   
@@ -110,6 +166,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
       doc: newProduct,
     });
   });
+  
   
 
 export const updateProductImages = catchAsync(async (req, res) => {
@@ -141,9 +198,7 @@ export const updateProductImages = catchAsync(async (req, res) => {
   });
 });
 
-export const getAllProducts = getAll(Product, {
-  path: "reviews totalOrders",
-});
+export const getAllProducts = getAll(Product);
 
 export const getProductById = getOne(Product, {
   path: "reviews totalOrders",
@@ -156,7 +211,7 @@ export const getProductBySlug = getOneBySlug(Product, {
 const relatedModels = [{ model: Wishlist, foreignKey: "products" }];
 
 // Delete a Product
-export const deleteProduct = deleteOneWithTransaction(Product, relatedModels);
+export const deleteProduct = deleteOne(Product);
 
 // Update product status
 export const updateProductStatus = updateStatus(Product);
@@ -234,7 +289,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
         attributes, // Assuming attributes like 'small', 'medium', 'large'
         size,
         videoLink,
-        userId,
+        userId ,
         userType,
     } = req.body;
 
