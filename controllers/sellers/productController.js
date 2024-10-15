@@ -34,7 +34,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
   
     let user;
   
-    // Check for the user (vendor or admin)
     if (userType === 'vendor') {
       user = await Vendor.findById(userId);
       if (!user) {
@@ -49,7 +48,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
       return next(new AppError('Invalid userType provided', 400));
     }
   
-    // Check if the product with the same name and attribute already exists
     const existingProduct = await Product.findOne({
       name,
       'attributePrices.attribute': { $in: attributePrices.map(attrPrice => attrPrice.attribute) },
@@ -59,19 +57,18 @@ export const createProduct = catchAsync(async (req, res, next) => {
       return next(new AppError('Product with the same name and attribute already exists', 400));
     }
   
-    // Fetch the brand ObjectId from the Brand model using the provided brand name
+
     const brandDoc = await Brand.findById(brand);
     if (!brandDoc) {
       return next(new AppError('Referenced brand does not exist', 400));
     }
   
-    // Fetch the category ObjectId from the Category model
+
     const categoryDoc = await Category.findById(category);
     if (!categoryDoc) {
       return next(new AppError('Referenced category does not exist', 400));
     }
-  
-    // Fetch the subCategory and subSubCategory if they exist
+
     let subCategoryDoc = await SubCategory.findById(subCategory);
     if (!subCategoryDoc) {
       subCategoryDoc = null;
@@ -81,8 +78,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
     if (!subSubCategoryDoc) {
       subSubCategoryDoc = null;
     }
-  
-    // Fetch the color by ID
+
     let colorDoc = null;
     if (colors && colors.length > 0) {
       colorDoc = await Color.find({ _id: { $in: colors } });
@@ -91,7 +87,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
       }
     }
   
-    // Handle attribute pricing
+
     let attributePricing = [];
     if (attributePrices.length > 0) {
       const attributeIds = attributePrices.map(attrPrice => attrPrice.attribute);
@@ -100,8 +96,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
       if (fetchedAttributes.length !== attributeIds.length) {
         return next(new AppError('One or more provided attributes do not exist', 400));
       }
-  
-      // Map attribute prices correctly
+
       for (let i = 0; i < attributePrices.length; i++) {
         const attrPrice = attributePrices[i];
         const attributeName = fetchedAttributes.find(attr => attr._id.toString() === attrPrice.attribute);
@@ -118,7 +113,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
       attributePricing = [{ attribute: null, name: null, price: price }];
     }
   attributePrices = attributePricing
-  userId = user
 
     const newProduct = new Product({
       name,
