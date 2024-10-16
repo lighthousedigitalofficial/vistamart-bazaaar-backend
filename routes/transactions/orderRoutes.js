@@ -16,7 +16,8 @@ const router = express.Router()
 
 router
     .route('/')
-    .post(protect, validateSchema(orderValidationSchema), createOrder)
+    .post(createOrder)
+    // .post(protect, validateSchema(orderValidationSchema), createOrder)
     .get(protect, restrictTo('admin', 'vendor'), getAllOrders)
 
 router.get('/customer/:customerId', getOrderByCustomer)

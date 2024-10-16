@@ -1,25 +1,30 @@
 import mongoose from 'mongoose'
-import { adminDbConnection } from '../../config/dbConnections.js'
-import Product from '../models/productModel.js'
+import Product from '../../models/sellers/productModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
-import User from '../../models/users/customerModel.js'
-import catchAsync from '../utils/catchAsync.js'
+import User from '../../models/admin/employeeModel.js'
+import Color from './../../models/admin/colorModel.js'
+import catchAsync from '../../utils/catchAsync.js'
+import Attribute from '../../models/admin/attributeModel.js'
 import {
     deleteOneWithTransaction,
     getAll,
     getOne,
     getOneBySlug,
     updateStatus,
-} from './handleFactory.js'
-import { getCacheKey } from '../utils/helpers.js'
-import redisClient from '../config/redisConfig.js'
+    deleteOne,
+} from '../../factory/handleFactory.js'
+import { getCacheKey } from '../../utils/helpers.js'
+import redisClient from '../../config/redisConfig.js'
 import slugify from 'slugify'
-import AppError from '../utils/appError.js'
-import Wishlist from '../models/wishlistModel.js'
-
+import AppError from '../../utils/appError.js'
+import Wishlist from '../../models/users/wishlistModel.js'
+import Brand from '../../models/admin/brandModel.js'
+import Category from '../../models/admin/categories/categoryModel.js'
+import SubCategory from '../../models/admin/categories/subCategoryModel.js'
+import SubSubCategory from '../../models/admin/categories/subSubCategoryModel.js'
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
-    const {
+    let {
         name,
         description,
         category,
@@ -42,62 +47,117 @@ export const createProduct = catchAsync(async (req, res, next) => {
         stock,
         isFeatured,
         colors,
-        attributes,
-        attributePrices,
+        images,
+        attributePrices = [],
         videoLink,
         userId,
         userType,
     } = req.body
 
-    // Check for the user (vendor or admin)
+    let user
+
     if (userType === 'vendor') {
-        const vendor = await Vendor.model('Vendor').findById(userId)
-        if (!vendor) {
+        user = await Vendor.findById(userId)
+        if (!user) {
             return next(new AppError('Referenced vendor does not exist', 400))
         }
     } else if (userType === 'admin') {
-        const user = await User.model('User').findById(userId)
+        user = await User.findById(userId)
         if (!user) {
             return next(new AppError('Referenced user does not exist', 400))
         }
+    } else {
+        return next(new AppError('Invalid userType provided', 400))
     }
 
-    // Fetch attributes from another database (adminDbConnection)
-    const fetchedAttributes = await adminDbConnection
-        .model('Attribute')
-        .find({ _id: { $in: attributes } })
+    const existingProduct = await Product.findOne({
+        name,
+        'attributePrices.attribute': {
+            $in: attributePrices.map((attrPrice) => attrPrice.attribute),
+        },
+    })
 
-    // Validate that all provided attributes exist
-    if (fetchedAttributes.length !== attributes.length) {
-        return next(new AppError('One or more attributes do not exist', 400))
-    }
-
-    // Prepare attributePrices array by validating provided attribute IDs
-    const attributePricing = attributePrices.map((attrPrice) => {
-        const foundAttribute = fetchedAttributes.find(
-            (attr) => attr._id.toString() === attrPrice.attribute
+    if (existingProduct) {
+        return next(
+            new AppError(
+                'Product with the same name and attribute already exists',
+                400
+            )
         )
-        if (!foundAttribute) {
+    }
+
+    const brandDoc = await Brand.findById(brand)
+    if (!brandDoc) {
+        return next(new AppError('Referenced brand does not exist', 400))
+    }
+
+    const categoryDoc = await Category.findById(category)
+    if (!categoryDoc) {
+        return next(new AppError('Referenced category does not exist', 400))
+    }
+
+    let subCategoryDoc = await SubCategory.findById(subCategory)
+    if (!subCategoryDoc) {
+        subCategoryDoc = null
+    }
+
+    let subSubCategoryDoc = await SubSubCategory.findById(subSubCategory)
+    if (!subSubCategoryDoc) {
+        subSubCategoryDoc = null
+    }
+
+    let colorDoc = null
+    if (colors && colors.length > 0) {
+        colorDoc = await Color.find({ _id: { $in: colors } })
+        if (colorDoc.length === 0) {
+            return next(new AppError('Provided colors do not exist', 400))
+        }
+    }
+
+    let attributePricing = []
+    if (attributePrices.length > 0) {
+        const attributeIds = attributePrices.map(
+            (attrPrice) => attrPrice.attribute
+        )
+        const fetchedAttributes = await Attribute.find({
+            _id: { $in: attributeIds },
+        })
+
+        if (fetchedAttributes.length !== attributeIds.length) {
             return next(
                 new AppError(
-                    `Attribute ID ${attrPrice.attribute} does not exist`,
+                    'One or more provided attributes do not exist',
                     400
                 )
             )
         }
-        return {
-            attribute: attrPrice.attribute,
-            price: attrPrice.price,
+
+        for (let i = 0; i < attributePrices.length; i++) {
+            const attrPrice = attributePrices[i]
+            const attributeName = fetchedAttributes.find(
+                (attr) => attr._id.toString() === attrPrice.attribute
+            )
+
+            if (attributeName) {
+                attributePricing.push({
+                    attribute: attributeName._id,
+                    name: attributeName.name,
+                    price: attrPrice.price,
+                })
+            }
         }
-    })
+    } else {
+        attributePricing = [{ attribute: null, name: null, price: price }]
+    }
+    attributePrices = attributePricing
 
     const newProduct = new Product({
         name,
         description,
-        category,
-        subCategory,
-        subSubCategory,
-        brand,
+        category: categoryDoc,
+        subCategory: subCategoryDoc,
+        subSubCategory: subSubCategoryDoc,
+        brand: brandDoc,
         productType,
         digitalProductType,
         sku,
@@ -112,22 +172,21 @@ export const createProduct = catchAsync(async (req, res, next) => {
         minimumOrderQty,
         shippingCost,
         stock,
+        images,
         isFeatured: isFeatured || false,
-        colors: [colors],
-        attributes: [attributes],
+        colors: colorDoc || [],
+        attributePrices,
         videoLink,
         userId,
         userType,
-        attributePrices: attributePricing,
         slug: slugify(name, { lower: true }),
     })
 
     await newProduct.save()
 
-    const cacheKeyOne = getCacheKey('Product', newProduct?._id)
+    const cacheKeyOne = getCacheKey('Product', newProduct._id)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct))
 
-    // Update cache
     const cacheKey = getCacheKey('Product', '', req.query)
     await redisClient.del(cacheKey)
 
@@ -166,9 +225,7 @@ export const updateProductImages = catchAsync(async (req, res) => {
     })
 })
 
-export const getAllProducts = getAll(Product, {
-    path: 'reviews totalOrders',
-})
+export const getAllProducts = getAll(Product)
 
 export const getProductById = getOne(Product, {
     path: 'reviews totalOrders',
@@ -181,7 +238,7 @@ export const getProductBySlug = getOneBySlug(Product, {
 const relatedModels = [{ model: Wishlist, foreignKey: 'products' }]
 
 // Delete a Product
-export const deleteProduct = deleteOneWithTransaction(Product, relatedModels)
+export const deleteProduct = deleteOne(Product)
 
 // Update product status
 export const updateProductStatus = updateStatus(Product)

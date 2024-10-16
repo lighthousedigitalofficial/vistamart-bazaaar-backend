@@ -120,8 +120,6 @@ export const createOne = (Model) =>
             }
         }
 
-        console.log({ Model, filteredData })
-
         const doc = await Model.create(filteredData)
 
         const docName = Model.modelName || 'Document'
