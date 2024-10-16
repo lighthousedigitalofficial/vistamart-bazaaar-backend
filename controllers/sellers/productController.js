@@ -166,13 +166,9 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
 export const getAllProducts = getAll(Product)
 
-export const getProductById = getOne(Product, {
-    path: 'reviews totalOrders',
-})
+export const getProductById = getOne(Product)
 
-export const getProductBySlug = getOneBySlug(Product, {
-    path: 'reviews  totalOrders',
-})
+export const getProductBySlug = getOneBySlug(Product)
 
 const relatedModels = [{ model: Wishlist, foreignKey: 'products' }]
 
