@@ -1,10 +1,9 @@
-import FlashDeal from '../models/flashDealModel.js'
-import { deleteOne, getAll, getOne, updateStatus } from './handleFactory.js'
-import catchAsync from '../utils/catchAsync.js'
-import AppError from '../utils/appError.js'
-import { getCacheKey } from '../utils/helpers.js'
-import redisClient from '../config/redisConfig.js'
-
+import { deleteOne, getAll, getOne, updateStatus } from '../../../factory/handleFactory.js'
+import redisClient from '../../../config/redisConfig.js'
+import { getCacheKey } from '../../../utils/helpers.js'
+import AppError from '../../../utils/appError.js'
+import catchAsync from '../../../utils/catchAsync.js'
+import FlashDeal from '../../../models/admin/deals/flashDealModel.js'
 const checkExpiration = (flashDeal) => {
     const currentDate = new Date()
     const endDate = new Date(flashDeal.endDate)

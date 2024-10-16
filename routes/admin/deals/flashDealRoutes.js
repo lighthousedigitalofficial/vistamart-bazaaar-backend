@@ -10,10 +10,11 @@ import {
     deleteFlashDeal,
     getFlashDealById,
     removeProductFromFlashDeal,
-} from '../controllers/flashDealController.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import flashDealValidationSchema from './../validations/flashDealValidator.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
+} from '../../../controllers/admin/deals/flashDealController.js'
+import { validateSchema } from '../../../middleware/validationMiddleware.js'
+import flashDealValidationSchema from '../../../validations/flashDealValidator.js'
+import { protect } from '../../../middleware/authMiddleware.js'
+import { restrictTo } from '../../../middleware/authMiddleware.js'
 
 const router = express.Router()
 

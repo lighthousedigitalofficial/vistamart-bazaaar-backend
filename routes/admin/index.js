@@ -1,8 +1,8 @@
 import express from 'express'
 
-// import flashDeal from './flashDealRoutes.js'
-// import dealOfDay from './dealOfTheDayRoutes.js'
-// import featureddeal from './featuredDealRoutes.js'
+import flashDeal from './deals/flashDealRoutes.js'
+import dealOfDay from './deals/dealOfTheDayRoutes.js'
+import featureDeal from './deals/featuredDealRoutes.js'
 
 import brandsRoutes from './brandRoutes.js'
 import businessGeneralRoutes from './bussiness/businessGeneralRoutes.js'
@@ -43,6 +43,12 @@ router.use('/banners', bannerRoutes)
 router.use('/colors', colorRoutes)
 router.use('/coupons', couponRoutes)
 router.use('/brands', brandsRoutes)
+
+//Deals
+router.use('/flash-deal', flashDeal)
+router.use('/deal-of-day', dealOfDay)
+router.use('/feature-deal', featureDeal)
+
 
 //Business
 router.use('/businessgeneral', businessGeneralRoutes)

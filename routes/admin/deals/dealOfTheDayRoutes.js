@@ -1,14 +1,15 @@
 import express from 'express'
-import dealOfTheDayValidationSchema from './../validations/dealOfTheDayValidator.js'
-import { validateSchema } from './../middleware/validationMiddleware.js'
 import {
     createDealOfTheDay,
     getAllDealsOfTheDay,
     getDealOfTheDayById,
     updateDealOfTheDay,
     deleteDealOfTheDay,
-} from '../controllers/dealOfTheDayController.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
+} from '../../../controllers/admin/deals/dealOfTheDayController.js'
+import { validateSchema } from '../../../middleware/validationMiddleware.js'
+import dealOfTheDayValidationSchema from '../../../validations/dealOfTheDayValidator.js'
+import { protect } from '../../../middleware/authMiddleware.js'
+import { restrictTo } from '../../../middleware/authMiddleware.js'
 
 const router = express.Router()
 router
