@@ -47,6 +47,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         stock,
         isFeatured,
         colors,
+        thumbnail,
         images,
         attributePrices = [],
         videoLink,
@@ -109,6 +110,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         minimumOrderQty,
         shippingCost,
         stock,
+        thumbnail,
         images,
         isFeatured: isFeatured || false,
         colors,
@@ -141,6 +143,7 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
     // Handle case where the document was not found
     if (!product) {
+
         return next(new AppError('No product found with that ID', 404))
     }
 
@@ -166,6 +169,7 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
 export const getAllProducts = getAll(Product)
 
+
 export const getProductById = getOne(Product)
 
 export const getProductBySlug = getOneBySlug(Product)
@@ -186,6 +190,7 @@ export const updateProductFeaturedStatus = catchAsync(
 
         const product = await Product.findById(productId)
         if (!product) {
+            return next(new AppError(`No product found`, 404))
             return next(new AppError('No product found', 404))
         }
 
@@ -277,7 +282,8 @@ export const updateProduct = catchAsync(async (req, res, next) => {
             if (!attribute) {
                 return next(new AppError('Invalid attribute selected', 400))
             }
-            // Assume attribute has a priceModifier field to adjust the price
+            // Assume attribute has a `priceModifier` field to adjust the price
+
             return attribute.priceModifier || 0
         })
 
