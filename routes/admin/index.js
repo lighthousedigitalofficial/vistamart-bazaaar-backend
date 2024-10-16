@@ -18,7 +18,7 @@ import sellerBusinessRoutes from './bussiness/sellerBusinessRoutes.js'
 import shippinpMethodRoutes from './bussiness/shippingMethodRoutes.js'
 // import notification from './notificationRoutes.js'
 
-import couponRoutes from './couponRoutes.js'
+import couponRoutes from '../sellers/couponRoutes.js'
 import colorRoutes from './colorRoutes.js'
 import bannerRoutes from './bannerRoutes.js'
 import attributeRoutes from './attributeRoutes.js'
