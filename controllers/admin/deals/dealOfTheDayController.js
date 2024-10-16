@@ -1,11 +1,11 @@
-import DealOfTheDay from './../models/dealOfTheDayModel.js'
+import DealOfTheDay from '../../../models/admin/deals/dealOfTheDayModel.js'
 import {
     createOne,
     getAll,
     getOne,
     updateOne,
     deleteOne,
-} from './handleFactory.js'
+} from '../../../factory/handleFactory.js'
 
 // Create a Deal of the Day
 export const createDealOfTheDay = createOne(DealOfTheDay)

@@ -8,11 +8,12 @@ import {
     deleteFeaturedDeal,
     getFeaturedDealById,
     removeProductFromFeaturedDeal,
-} from '../controllers/featuredDealController.js'
+} from '../../../controllers/admin/deals/featuredDealController.js'
+import { validateSchema } from '../../../middleware/validationMiddleware.js'
+import featuredDealValidationSchema from '../../../validations/featuredDealValidator.js'
+import { protect } from '../../../middleware/authMiddleware.js'
+import { restrictTo } from '../../../middleware/authMiddleware.js'
 
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import featuredDealValidationSchema from './../validations/featuredDealValidator.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 router
