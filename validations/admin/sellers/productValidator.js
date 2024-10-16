@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from "joi";
 
 const productValidationSchema = Joi.object({
     name: Joi.string()
@@ -127,11 +127,11 @@ const productValidationSchema = Joi.object({
             'any.only': 'Status must be either pending, approved, or rejected',
         }),
 
-    ownerId: Joi.string().required().messages({
+    userId: Joi.string().required().messages({
         'any.required': 'Owner ID is required',
     }),
 
-    ownerType: Joi.string().valid('vendor', 'in-house').required().messages({
+    userType: Joi.string().valid('vendor', 'admin').required().messages({
         'any.required': 'Owner type is required',
         'any.only': 'Owner type must be either vendor or in-house',
     }),

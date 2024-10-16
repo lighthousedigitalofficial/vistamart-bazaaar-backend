@@ -10,10 +10,10 @@ import {
     sellProduct,
     updateProduct,
     getProductBySlug,
-} from '../../controllers/admin/adminProductController.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import productValidationSchema from './../validations/productValidator.js'
+} from '../../controllers/sellers/productController.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import productValidationSchema from '../../validations/admin/sellers/productValidator.js'
 
 const router = express.Router()
 
