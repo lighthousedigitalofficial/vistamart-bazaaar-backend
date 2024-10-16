@@ -1,4 +1,5 @@
 import express from 'express'
+
 import {
     createRole,
     deleteRole,
@@ -14,6 +15,7 @@ router
     .route('/')
     .post(protect, restrictTo('admin'), createRole)
     .get(protect, restrictTo('admin'), getRoles)
+
 
 router
     .route('/:id')
