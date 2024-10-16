@@ -17,7 +17,7 @@ const models = {
 }
 
 export const selectModelByRole = (req, res, next) => {
-    const userRole = req.user.role.toLowerCase()
+    const userRole = req.user?.role?.name.toLowerCase()
     const Model = models[userRole]
 
     if (!Model) {
@@ -64,7 +64,8 @@ export const protect = catchAsync(async (req, res, next) => {
     }
 
     // 4) Determine the model based on the user role in the token
-    const userRole = decoded.role.name // Assume role is included in the token payload
+    console.log(decoded)
+    const userRole = decoded.role.name || decoded.role // Assume role is included in the token payload
     const Model = models[userRole]
 
     if (!Model) {
