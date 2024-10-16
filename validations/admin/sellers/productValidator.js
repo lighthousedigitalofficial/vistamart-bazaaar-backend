@@ -1,23 +1,16 @@
-import Joi from "joi";
+import Joi from 'joi'
 
 const productValidationSchema = Joi.object({
-    name: Joi.string()
-        .trim()
-        .max(100)
-        .required()
-        .messages({
-            'string.base': 'Product name must be a string',
-            'string.max': 'Product name should not exceed 100 characters',
-            'any.required': 'Product name is required',
-        }),
+    name: Joi.string().trim().max(100).required().messages({
+        'string.base': 'Product name must be a string',
+        'string.max': 'Product name should not exceed 100 characters',
+        'any.required': 'Product name is required',
+    }),
 
-    description: Joi.string()
-        .trim()
-        .required()
-        .messages({
-            'string.base': 'Product description must be a string',
-            'any.required': 'Product description is required',
-        }),
+    description: Joi.string().trim().required().messages({
+        'string.base': 'Product description must be a string',
+        'any.required': 'Product description is required',
+    }),
 
     category: Joi.string().required().messages({
         'any.required': 'Category is required',
@@ -39,24 +32,21 @@ const productValidationSchema = Joi.object({
         .valid('physical', 'digital')
         .default('physical')
         .messages({
-            'any.only': 'Digital product type must be either physical or digital',
+            'any.only':
+                'Digital product type must be either physical or digital',
         }),
 
-    sku: Joi.string()
-        .required()
-        .messages({
-            'any.required': 'SKU is required',
-        }),
+    sku: Joi.string().required().messages({
+        'any.required': 'SKU is required',
+    }),
 
-    unit: Joi.string()
-        .required()
-        .messages({
-            'any.required': 'Unit is required',
-        }),
+    unit: Joi.string().required().messages({
+        'any.required': 'Unit is required',
+    }),
 
     tags: Joi.array().items(Joi.string()),
 
-    price: Joi.number().min(0).messages({
+    price: Joi.number().min(0).optional().messages({
         'number.base': 'Price must be a number',
         'number.min': 'Price cannot be negative',
     }),
@@ -102,12 +92,12 @@ const productValidationSchema = Joi.object({
 
     colors: Joi.array().items(Joi.string()),
 
-    attributePrices: Joi.array().items(
+    attributes: Joi.array().items(
         Joi.object({
-            attribute: Joi.string().optional().messages({
+            attribute: Joi.string().required().messages({
                 'any.required': 'Attribute is required',
             }),
-            price: Joi.number().min(0).messages({
+            price: Joi.number().min(0).optional().messages({
                 'number.base': 'Attribute price must be a number',
                 'number.min': 'Price cannot be negative',
             }),
@@ -131,7 +121,7 @@ const productValidationSchema = Joi.object({
         'any.required': 'Owner ID is required',
     }),
 
-    userType: Joi.string().valid('vendor', 'admin').required().messages({
+    userType: Joi.string().valid('vendor', 'in-house').required().messages({
         'any.required': 'Owner type is required',
         'any.only': 'Owner type must be either vendor or in-house',
     }),
@@ -148,6 +138,17 @@ const productValidationSchema = Joi.object({
         'number.base': 'Number of reviews must be a number',
         'number.min': 'Number of reviews cannot be negative',
     }),
-});
 
-export default  productValidationSchema;
+    // New fields
+    metaTitle: Joi.string().max(60).optional().messages({
+        'string.base': 'Meta title must be a string',
+        'string.max': 'Meta title should not exceed 60 characters',
+    }),
+
+    metaDescription: Joi.string().max(160).optional().messages({
+        'string.base': 'Meta description must be a string',
+        'string.max': 'Meta description should not exceed 160 characters',
+    }),
+})
+
+export default productValidationSchema

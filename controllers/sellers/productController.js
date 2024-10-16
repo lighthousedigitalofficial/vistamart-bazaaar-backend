@@ -52,6 +52,8 @@ export const createProduct = catchAsync(async (req, res, next) => {
         videoLink,
         userId,
         userType,
+        metaTitle,
+        metaDescription,
     } = req.body
 
     let user
@@ -61,7 +63,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         if (!user) {
             return next(new AppError('Referenced vendor does not exist', 400))
         }
-    } else if (userType === 'admin') {
+    } else if (userType === 'in-house') {
         user = await User.findById(userId)
         if (!user) {
             return next(new AppError('Referenced user does not exist', 400))
@@ -86,78 +88,13 @@ export const createProduct = catchAsync(async (req, res, next) => {
         )
     }
 
-    const brandDoc = await Brand.findById(brand)
-    if (!brandDoc) {
-        return next(new AppError('Referenced brand does not exist', 400))
-    }
-
-    const categoryDoc = await Category.findById(category)
-    if (!categoryDoc) {
-        return next(new AppError('Referenced category does not exist', 400))
-    }
-
-    let subCategoryDoc = await SubCategory.findById(subCategory)
-    if (!subCategoryDoc) {
-        subCategoryDoc = null
-    }
-
-    let subSubCategoryDoc = await SubSubCategory.findById(subSubCategory)
-    if (!subSubCategoryDoc) {
-        subSubCategoryDoc = null
-    }
-
-    let colorDoc = null
-    if (colors && colors.length > 0) {
-        colorDoc = await Color.find({ _id: { $in: colors } })
-        if (colorDoc.length === 0) {
-            return next(new AppError('Provided colors do not exist', 400))
-        }
-    }
-
-    let attributePricing = []
-    if (attributePrices.length > 0) {
-        const attributeIds = attributePrices.map(
-            (attrPrice) => attrPrice.attribute
-        )
-        const fetchedAttributes = await Attribute.find({
-            _id: { $in: attributeIds },
-        })
-
-        if (fetchedAttributes.length !== attributeIds.length) {
-            return next(
-                new AppError(
-                    'One or more provided attributes do not exist',
-                    400
-                )
-            )
-        }
-
-        for (let i = 0; i < attributePrices.length; i++) {
-            const attrPrice = attributePrices[i]
-            const attributeName = fetchedAttributes.find(
-                (attr) => attr._id.toString() === attrPrice.attribute
-            )
-
-            if (attributeName) {
-                attributePricing.push({
-                    attribute: attributeName._id,
-                    name: attributeName.name,
-                    price: attrPrice.price,
-                })
-            }
-        }
-    } else {
-        attributePricing = [{ attribute: null, name: null, price: price }]
-    }
-    attributePrices = attributePricing
-
     const newProduct = new Product({
         name,
         description,
-        category: categoryDoc,
-        subCategory: subCategoryDoc,
-        subSubCategory: subSubCategoryDoc,
-        brand: brandDoc,
+        category,
+        subCategory,
+        subSubCategory,
+        brand,
         productType,
         digitalProductType,
         sku,
@@ -174,11 +111,13 @@ export const createProduct = catchAsync(async (req, res, next) => {
         stock,
         images,
         isFeatured: isFeatured || false,
-        colors: colorDoc || [],
-        attributePrices,
+        colors,
+        attributes: attributePrices,
         videoLink,
         userId,
         userType,
+        metaTitle,
+        metaDescription,
         slug: slugify(name, { lower: true }),
     })
 
@@ -202,7 +141,7 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
     // Handle case where the document was not found
     if (!product) {
-        return next(new AppError(`No product found with that ID`, 404))
+        return next(new AppError('No product found with that ID', 404))
     }
 
     product.images = req.files ? req.files.map((file) => file.path) : []
@@ -251,7 +190,7 @@ export const updateProductFeaturedStatus = catchAsync(
 
         const product = await Product.findById(productId)
         if (!product) {
-            return next(new AppError(`No product found`, 404))
+            return next(new AppError('No product found', 404))
         }
 
         product.isFeatured = isFeatured
@@ -275,7 +214,7 @@ export const sellProduct = catchAsync(async (req, res) => {
     const product = await Product.findById(productId)
 
     if (!product) {
-        return next(new AppError(`No product found with that ID.`, 404))
+        return next(new AppError('No product found with that ID.', 404))
     }
 
     product.status = 'sold'
@@ -342,7 +281,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
             if (!attribute) {
                 return next(new AppError('Invalid attribute selected', 400))
             }
-            // Assume attribute has a `priceModifier` field to adjust the price
+            // Assume attribute has a priceModifier field to adjust the price
             return attribute.priceModifier || 0
         })
 
