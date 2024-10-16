@@ -1,8 +1,15 @@
 import express from 'express'
-import { uploadSingleImage } from '../controllers/uploadController.js'
+import {
+    deleteImages,
+    getImageUrl,
+    getProductImageUrl,
+} from '../controllers/uploadController.js'
 
 const router = express.Router()
 
-router.get('/image', uploadSingleImage)
+router.get('/upload', getImageUrl)
+router.get('/upload/product', getProductImageUrl)
+
+router.delete('/delete-images', deleteImages)
 
 export default router

@@ -143,7 +143,8 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
     // Handle case where the document was not found
     if (!product) {
-        return next(new AppError(`No product found with that ID`, 404))
+
+        return next(new AppError('No product found with that ID', 404))
     }
 
     product.images = req.files ? req.files.map((file) => file.path) : []
@@ -168,13 +169,10 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
 export const getAllProducts = getAll(Product)
 
-export const getProductById = getOne(Product, {
-    path: 'reviews totalOrders',
-})
 
-export const getProductBySlug = getOneBySlug(Product, {
-    path: 'reviews  totalOrders',
-})
+export const getProductById = getOne(Product)
+
+export const getProductBySlug = getOneBySlug(Product)
 
 const relatedModels = [{ model: Wishlist, foreignKey: 'products' }]
 
@@ -193,6 +191,7 @@ export const updateProductFeaturedStatus = catchAsync(
         const product = await Product.findById(productId)
         if (!product) {
             return next(new AppError(`No product found`, 404))
+            return next(new AppError('No product found', 404))
         }
 
         product.isFeatured = isFeatured
@@ -216,7 +215,7 @@ export const sellProduct = catchAsync(async (req, res) => {
     const product = await Product.findById(productId)
 
     if (!product) {
-        return next(new AppError(`No product found with that ID.`, 404))
+        return next(new AppError('No product found with that ID.', 404))
     }
 
     product.status = 'sold'
@@ -284,6 +283,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
                 return next(new AppError('Invalid attribute selected', 400))
             }
             // Assume attribute has a `priceModifier` field to adjust the price
+
             return attribute.priceModifier || 0
         })
 

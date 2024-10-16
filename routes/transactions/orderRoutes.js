@@ -6,16 +6,18 @@ import {
     updateOrderStatus,
     deleteOrder,
     getOrderByCustomer,
-} from '../controllers/orderControllers.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import orderValidationSchema from './../validations/orderValidator.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
+} from '../../controllers/transactions/orderControllers.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import orderValidationSchema from '../../validations/admin/transactions/orderValidator.js'
+import { protect } from '../../middleware/authMiddleware.js'
+import { restrictTo } from '../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
 router
     .route('/')
-    .post(protect, validateSchema(orderValidationSchema), createOrder)
+    .post(createOrder)
+    // .post(protect, validateSchema(orderValidationSchema), createOrder)
     .get(protect, restrictTo('admin', 'vendor'), getAllOrders)
 
 router.get('/customer/:customerId', getOrderByCustomer)

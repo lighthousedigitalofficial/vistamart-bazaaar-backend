@@ -7,6 +7,7 @@ import SubCategory from '../admin/categories/subCategoryModel.js'
 import SubSubCategory from '../admin/categories/subSubCategoryModel.js'
 import Color from '../admin/colorModel.js'
 import Attribute from '../admin/attributeModel.js'
+
 const productSchema = new mongoose.Schema(
     {
         name: {
@@ -160,6 +161,7 @@ const productSchema = new mongoose.Schema(
           type: String,
           maxlength: [160, 'Meta description cannot exceed 160 characters'],
       },
+
     },
     { timestamps: true }
 )

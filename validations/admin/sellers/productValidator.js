@@ -1,4 +1,4 @@
-import Joi from "joi";
+import Joi from 'joi'
 
 const productValidationSchema = Joi.object({
   name: Joi.string()
@@ -10,7 +10,6 @@ const productValidationSchema = Joi.object({
       'string.max': 'Product name should not exceed 100 characters',
       'any.required': 'Product name is required',
     }),
-
   description: Joi.string()
     .trim()
     .required()
@@ -22,7 +21,6 @@ const productValidationSchema = Joi.object({
   category: Joi.string().required().messages({
     'any.required': 'Category is required',
   }),
-
   subCategory: Joi.string().optional().allow(null, ''),
   subSubCategory: Joi.string().optional().allow(null, ''),
 
@@ -125,6 +123,7 @@ const productValidationSchema = Joi.object({
     .default('pending')
     .messages({
       'any.only': 'Status must be either pending, approved, or rejected',
+
     }),
 
   userId: Joi.string().required().messages({
@@ -136,8 +135,6 @@ const productValidationSchema = Joi.object({
       'any.required': 'Owner type is required',
       'any.only': 'Owner type must be either vendor or in-house',
     }),
-
-  slug: Joi.string().optional(),
 
   rating: Joi.number().min(0).max(5).default(0).messages({
     'number.base': 'Rating must be a number',
@@ -163,3 +160,4 @@ const productValidationSchema = Joi.object({
 });
 
 export default productValidationSchema;
+

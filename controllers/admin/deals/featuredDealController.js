@@ -1,7 +1,4 @@
 import mongoose from 'mongoose'
-import FeaturedDeal from '../models/featuredDealModel.js'
-import Product from '../models/productModel.js'
-import catchAsync from '../utils/catchAsync.js'
 import {
     createOne,
     deleteOne,
@@ -9,10 +6,13 @@ import {
     getOne,
     updateOne,
     updateStatus,
-} from './handleFactory.js'
-import { getCacheKey } from '../utils/helpers.js'
-import redisClient from '../config/redisConfig.js'
-import AppError from '../utils/appError.js'
+} from '../../../factory/handleFactory.js'
+import FeaturedDeal from '../../../models/admin/deals/featuredDealModel.js'
+import Product from '../../../models/sellers/productModel.js'
+import catchAsync from '../../../utils/catchAsync.js'
+import { getCacheKey } from '../../../utils/helpers.js'
+import redisClient from '../../../config/redisConfig.js'
+import AppError from '../../../utils/appError.js'
 
 // Create Feature Deal
 export const createFeaturedDeal = createOne(FeaturedDeal)
