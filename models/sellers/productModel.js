@@ -137,10 +137,10 @@ const productSchema = new mongoose.Schema(
             required: [true, 'Please provide Owner ID'],
         },
         userType: {
-            type: String,
-            enum: ['vendor', 'in-house'],
-            required: [true, 'Please provide Owner type'],
-        },
+          type: String,
+          enum: ['vendor', 'in-house'], 
+          required: [true, 'Please provide Owner type'],
+      },
         slug: String,
         rating: {
             type: Number,
@@ -154,13 +154,14 @@ const productSchema = new mongoose.Schema(
             default: 0,
         },
         metaTitle: {
-            type: String,
-            maxlength: [60, 'Meta title cannot exceed 60 characters'],
-        },
-        metaDescription: {
-            type: String,
-            maxlength: [160, 'Meta description cannot exceed 160 characters'],
-        },
+          type: String,
+          maxlength: [60, 'Meta title cannot exceed 60 characters'],
+      },
+      metaDescription: {
+          type: String,
+          maxlength: [160, 'Meta description cannot exceed 160 characters'],
+      },
+
     },
     { timestamps: true }
 )
