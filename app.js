@@ -87,7 +87,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/v1', routes)
 
 // Clear all caches
-app.post('/api/clean-cache', cleanCache)
+app.post('/api/v1/clean-cache', cleanCache)
 
 // Unhandled Routes Handling Middleware
 app.all('*', (req, res, next) => {

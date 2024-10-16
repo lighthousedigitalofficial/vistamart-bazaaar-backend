@@ -1,16 +1,16 @@
-import redisClient from '../config/redisConfig.js'
-import Coupon from '../models/couponModel.js'
-import Order from '../models/orderModel.js'
-import Refund from '../models/refundModel.js'
-import AppError from '../utils/appError.js'
-import catchAsync from '../utils/catchAsync.js'
-import { getCacheKey } from '../utils/helpers.js'
+import redisClient from '../../config/redisConfig.js'
+import Coupon from '../../models/admin/couponModel.js'; // Adjust this based on your actual directory structure
+import Order from '../../models/transactions/orderModel.js';
+import Refund from '../../models/transactions/refundModel.js';
+import AppError from '../../utils/appError.js';
+import catchAsync from '../../utils/catchAsync.js';
+import { getCacheKey } from '../../utils/helpers.js';
 import {
     deleteOneWithTransaction,
     getAll,
     getOne,
     updateStatus,
-} from './handleFactory.js'
+} from '../../factory/handleFactory.js'
 
 const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     // Find the coupon by ID

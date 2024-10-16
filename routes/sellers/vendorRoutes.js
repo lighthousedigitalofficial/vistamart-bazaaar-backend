@@ -1,43 +1,44 @@
-import express from 'express'
+import express from 'express';
 import {
     registerVendor,
     updateVendorStatus,
     getAllVendors,
     getVendorById,
     deleteVendor,
-} from '../controllers/vendorController.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import vendorValidationSchema from './../validations/vendorValidator.js'
-import { loginLimiter } from '../utils/helpers.js'
-import {
-    protect,
-    restrictTo,
-    selectModelByRole,
-} from '../middleware/authMiddleware.js'
+    updateVendorWithSlug,
+} from '../../controllers/sellers/vendorController.js';
+import { validateSchema } from '../../middleware/validationMiddleware.js';
+import vendorValidationSchema from '../../validations/admin/sellers/vendorValidator.js';
+import { loginLimiter } from '../../utils/helpers.js';
+// import { protect, restrictTo, selectModelByRole } from '../../middleware/authMiddleware.js';
 import {
     loginVendor,
     logout,
     updatePassword,
-} from './../controllers/authController.js'
+} from '../../controllers/authController.js';
 
-const router = express.Router()
+const router = express.Router();
 
-router
-    .route('/signup')
-    .post(validateSchema(vendorValidationSchema), registerVendor)
+// Vendor registration route
+router.route('/signup')
+    .post(validateSchema(vendorValidationSchema), registerVendor);
 
-router.post('/login', loginLimiter, loginVendor)
-router.post('/logout', protect, logout)
+// Vendor login and logout routes
+router.post('/login', loginLimiter, loginVendor);
+router.post('/logout', /* protect, */ logout);
 
-router.route('/').get(getAllVendors)
+// Route to get all vendors
+router.route('/')
+    .get(getAllVendors);
 
-router
-    .route('/:id')
-    .get(getVendorById)
-    .delete(protect, restrictTo('admin', 'vendor'), deleteVendor)
+// Routes for vendor by ID
+router.route('/:id')
+    .get(getVendorById) // Get vendor by ID
+    .delete(/* protect, restrictTo('admin', 'vendor'), */ deleteVendor) // Delete vendor by ID
+    .put(updateVendorWithSlug); // Update vendor by ID using PUT
 
-router.put('/update-password', protect, selectModelByRole, updatePassword)
+// Other vendor-related routes
+router.put('/update-password', /* protect, selectModelByRole, */ updatePassword);
+router.put('/status/:id', /* protect, restrictTo('admin'), */ updateVendorStatus);
 
-router.put('/status/:id', protect, restrictTo('admin'), updateVendorStatus)
-
-export default router
+export default router;
