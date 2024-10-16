@@ -9,12 +9,14 @@ import {
 
 import { validateSchema } from "../../../middleware/validationMiddleware.js";
 import deliveryRestrictionValidationSchema from "./../../../validations/admin/business/deliveryRestrictionValidator.js";
+import { protect, restrictTo } from "../../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router
   .route("/")
   .post(
+    protect, restrictTo("admin"),
     validateSchema(deliveryRestrictionValidationSchema),
     createDeliveryRestriction
   )
@@ -24,7 +26,7 @@ router
 router
   .route("/:id")
   .get(getDeliveryRestrictionById)
-  .put(updateDeliveryRestrictionById)
-  .delete(deleteDeliveryRestrictionById);
+  .put(protect, restrictTo("admin"),updateDeliveryRestrictionById)
+  .delete(protect, restrictTo("admin"),deleteDeliveryRestrictionById);
 
 export default router;

@@ -141,11 +141,18 @@ const productSchema = new mongoose.Schema(
       },
     },
     {
-    //   toJSON: { virtuals: true },
-    //   toObject: { virtuals: true },
+      toJSON: { virtuals: true },
+      toObject: { virtuals: true },
       timestamps: true,
     }
   );
+// Virtual field to fetch associated reviews
+productSchema.virtual('reviews', {
+  ref: 'ProductReview',
+  localField: '_id',
+  foreignField: 'product',
+});
+
 
 // productSchema.pre("save", async function (next) {
 //   if (this.category) {

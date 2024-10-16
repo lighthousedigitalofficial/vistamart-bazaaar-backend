@@ -9,19 +9,20 @@ import {
 
 import { validateSchema } from "../../../middleware/validationMiddleware.js";
 import inHouseShopValidationSchema from "./../../../validations/admin/business/inHouseShopValidator.js";
+import { protect, restrictTo } from "../../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(validateSchema(inHouseShopValidationSchema), createInHouseShop)
+  .post(protect, restrictTo("admin"), validateSchema(inHouseShopValidationSchema), createInHouseShop)
 
   .get(getAllInHouseShop);
 
 router
   .route("/:id")
   .get(getInHouseShopById)
-  .put(updateInHouseShopById)
-  .delete(deleteInHouseShopById);
+  .put(protect, restrictTo("admin"),updateInHouseShopById)
+  .delete(protect, restrictTo("admin"),deleteInHouseShopById);
 
 export default router;

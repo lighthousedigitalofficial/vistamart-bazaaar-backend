@@ -13,11 +13,10 @@ const router = express.Router();
 
 router
   .route("/")
-  .post(createCoupon)
-  // .post(protect, restrictTo('admin', 'vendor'), createCoupon)
+  .post(protect, restrictTo("admin", "vendor"), createCoupon)
 
-  .get(getAllCoupons);
-// .get(protect, getAllCoupons)
+  // .get(getAllCoupons);
+  .get(protect, getAllCoupons);
 
 router
   .route("/:id")

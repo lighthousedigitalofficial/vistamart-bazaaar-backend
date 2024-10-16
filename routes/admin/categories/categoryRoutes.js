@@ -18,18 +18,15 @@ const router = express.Router();
 
 router
   .route("/")
-  .post(validateSchema(categoryValidationSchema), createCategory)
-  //   .post(protect, validateSchema(categoryValidationSchema), createCategory)
+  .post(protect, validateSchema(categoryValidationSchema), createCategory)
 
   .get(getCategories);
 
 router
   .route("/:id")
   .get(getCategoryById)
-  .put(updateCategory)
-  // .put(protect, restrictTo("admin"), updateCategory)
-  // .delete(protect, restrictTo("admin"), deleteCategory);
-  .delete(deleteCategory);
+  .put(protect, restrictTo("admin"), updateCategory)
+  .delete(protect, restrictTo("admin"), deleteCategory);
 
 router.route("/slug/:slug").get(getCategoryBySlug);
 

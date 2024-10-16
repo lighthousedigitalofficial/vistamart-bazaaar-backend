@@ -1,16 +1,15 @@
 import express from 'express'
 
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
-import {
-    createProductReview,
-    deleteProductReview,
+import { protect, restrictTo } from './../../middleware/authMiddleware.js'
+import reviewValidationSchema from './../../validations/reviewValidator';
+
+import { createProductReview, deleteProductReview,
+
     getAllProductReviews,
     getProductReviewById,
     updateProductReview,
-    updateProductReviewStatus,
-} from '../controllers/reviewController.js'
-import reviewValidationSchema from '../validations/reviewValidator.js'
+    updateProductReviewStatus,getProductWithReviews } from '../../controllers/users/reviewController.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js';
 
 const router = express.Router()
 
@@ -31,5 +30,8 @@ router.put(
     restrictTo('admin', 'vendor'),
     updateProductReviewStatus
 )
+
+//Fetch Reviews wiyh productId
+router.get('/produtId', getProductWithReviews)
 
 export default router
