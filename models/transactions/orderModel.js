@@ -1,6 +1,10 @@
 import mongoose from 'mongoose'
 import AppError from '../../utils/appError.js'
 import { transactionDbConnection } from '../../config/dbConnections.js'
+import Product from '../sellers/productModel.js'
+import Vendor from '../sellers/vendorModel.js'
+import { checkReferenceId } from '../../utils/helpers.js'
+import Customer from '../users/customerModel.js'
 
 const orderSchema = new mongoose.Schema(
     {
@@ -86,6 +90,32 @@ const orderSchema = new mongoose.Schema(
         timestamps: true,
     }
 )
+
+orderSchema.pre('save', async function (next) {
+    await checkReferenceId(Customer, this.customer, next)
+
+    // Check if products exist and validate them
+    if (this.products && this.products.length > 0) {
+        const productCheck = await Product.countDocuments({
+            _id: { $in: this.products },
+        })
+
+        if (productCheck !== this.products.length) {
+            return next(new AppError('One or more products do not exist.', 400))
+        }
+    }
+
+    // Check if vendor exist and validate them
+    if (this.vendors && this.vendors.length > 0) {
+        const vendorCheck = await Vendor.countDocuments({
+            _id: { $in: this.vendors },
+        })
+
+        if (vendorCheck !== this.vendors.length) {
+            return next(new AppError('One or more vendors do not exist.', 400))
+        }
+    }
+})
 
 // orderSchema.pre(/^find/, function (next) {
 //   this.populate({
