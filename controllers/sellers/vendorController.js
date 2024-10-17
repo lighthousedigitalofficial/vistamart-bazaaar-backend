@@ -120,4 +120,6 @@ export const deleteVendor = deleteOneWithTransaction(Vendor, relatedModels)
 // Update vendor status
 export const updateVendorStatus = updateStatus(Vendor)
 
-export const getVendorBySlug = getOneBySlug(Vendor)
+export const getVendorBySlug = getOneBySlug(Vendor, {
+    path: 'totalProducts bank',
+})

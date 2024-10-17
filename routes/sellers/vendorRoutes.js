@@ -26,7 +26,7 @@ router
     .post(validateSchema(vendorValidationSchema), registerVendor)
 
 // Vendor login and logout routes
-router.post('/login', loginLimiter, loginVendor)
+router.post('/login', loginVendor)
 router.post('/logout', /* protect, */ logout)
 
 // Route to get all vendors
