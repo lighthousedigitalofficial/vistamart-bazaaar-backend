@@ -18,8 +18,8 @@ const router = express.Router();
 router
   .route("/")
   .post(
-    // protect,
-    // restrictTo("admin"),
+    protect,
+    restrictTo("admin"),
     validateSchema(subSubCategoryValidationSchema),
     createSubSubCategory
   )
@@ -28,10 +28,8 @@ router
 router
   .route("/:id")
   .get(getSubSubCategoryById)
-  .put(updateSubSubCategoryById)
-  .delete(deleteSubSubCategoryById);
-//   .put(protect, restrictTo("admin"), updateSubSubCategoryById)
-//   .delete(protect, restrictTo("admin"), deleteSubSubCategoryById);
+  .put(protect, restrictTo("admin"), updateSubSubCategoryById)
+  .delete(protect, restrictTo("admin"), deleteSubSubCategoryById);
 
 router.route("/slug/:slug").get(getSubSubCategoryBySlug);
 

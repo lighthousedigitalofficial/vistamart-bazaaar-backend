@@ -40,9 +40,15 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+  
     totalAmount: {
       type: Number,
       required: [true, "Please provide total amount."],
+    },
+    shippingMethod:{
+      type: String,
+      enum:["Leopards","Track"],
+      required: true
     },
     paymentMethod: {
       type: String,

@@ -67,6 +67,11 @@ const orderBusinessSchema = new mongoose.Schema(
         "Please specify if guest checkout is active or inactive",
       ],
     },
+    shippingMethod:{
+      type: String,
+      enum:["Leopards","Track"],
+      required: true
+    },
   },
   {
     timestamps: true,

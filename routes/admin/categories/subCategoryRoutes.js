@@ -21,13 +21,8 @@ router
 router
   .route("/:id")
   .get(getSubCategoryById)
-  .put(updateSubCategoryById)
-  .put(updateSubCategoryById)
-  // .put(protect, restrictTo('admin'), updateSubCategoryById)
-  .delete(deleteSubCategoryById);
-//   .delete(protect, restrictTo("admin"), deleteSubCategoryById);
-//
-
+  .put(protect, restrictTo("admin"), updateSubCategoryById)
+  .delete(protect, restrictTo("admin"), deleteSubCategoryById);
 router.route("/slug/:slug").get(getSubCategoryBySlug);
 
 export default router;

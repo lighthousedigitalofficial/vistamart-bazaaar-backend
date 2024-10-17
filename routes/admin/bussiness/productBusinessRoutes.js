@@ -9,19 +9,21 @@ import {
 import { validateSchema } from "../../../middleware/validationMiddleware.js";
 import productBusinessValidationSchema from "./../../../validations/admin/business/productBusinessValidator.js";
 import { getProductBusinessById } from "./../../../controllers/admin/business/productBusinessController.js";
+import { protect, restrictTo } from "../../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(validateSchema(productBusinessValidationSchema), createProductBusiness)
+  .post(protect, restrictTo
+    ("admin"),validateSchema(productBusinessValidationSchema), createProductBusiness)
 
   .get(getAllProductBusiness);
 
 router
   .route("/:id")
   .get(getProductBusinessById)
-  .put(updateProductBusinessById)
-  .delete(deleteProductBusinessById);
+  .put(protect, restrictTo("admin"),updateProductBusinessById)
+  .delete(protect, restrictTo("admin"),deleteProductBusinessById);
 
 export default router;
