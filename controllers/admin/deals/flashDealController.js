@@ -1,4 +1,10 @@
-import { deleteOne, getAll, getOne, updateStatus } from '../../../factory/handleFactory.js'
+import {
+    deleteOne,
+    getAll,
+    getOne,
+    updateStatus,
+} from '../../../factory/handleFactory.js'
+import Product from '../../../models/sellers/productModel.js'
 import redisClient from '../../../config/redisConfig.js'
 import { getCacheKey } from '../../../utils/helpers.js'
 import AppError from '../../../utils/appError.js'

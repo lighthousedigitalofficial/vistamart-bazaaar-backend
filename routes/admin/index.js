@@ -45,10 +45,9 @@ router.use('/coupons', couponRoutes)
 router.use('/brands', brandsRoutes)
 
 //Deals
-router.use('/flash-deal', flashDeal)
+router.use('/flash-deals', flashDeal)
 router.use('/deal-of-day', dealOfDay)
-router.use('/feature-deal', featureDeal)
-
+router.use('/featured-deals', featureDeal)
 
 //Business
 router.use('/businessgeneral', businessGeneralRoutes)

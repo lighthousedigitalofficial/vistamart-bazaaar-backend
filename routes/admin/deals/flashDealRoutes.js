@@ -35,7 +35,7 @@ router
     .delete(protect, restrictTo('admin'), deleteFlashDeal)
 
 router
-    .route('/:id/add-product')
+    .route('/add-product/:id')
     .put(protect, restrictTo('admin'), addProductToFlashDeal)
 
 router

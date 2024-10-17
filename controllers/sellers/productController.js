@@ -22,6 +22,7 @@ import Brand from '../../models/admin/brandModel.js'
 import Category from '../../models/admin/categories/categoryModel.js'
 import SubCategory from '../../models/admin/categories/subCategoryModel.js'
 import SubSubCategory from '../../models/admin/categories/subSubCategoryModel.js'
+import ProductReview from '../../models/users/productReviewModel.js'
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
     let {
@@ -143,7 +144,6 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
     // Handle case where the document was not found
     if (!product) {
-
         return next(new AppError('No product found with that ID', 404))
     }
 
@@ -169,10 +169,48 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
 export const getAllProducts = getAll(Product)
 
-
 export const getProductById = getOne(Product)
 
-export const getProductBySlug = getOneBySlug(Product)
+export const getProductBySlug = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('Product', req.params.slug)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let product = await Product.findOne({ slug: req.params.slug }).lean()
+
+    if (!product) {
+        return next(new AppError(`No Product found with that slug`, 404))
+    }
+
+    // fetch
+    const productReviews = await ProductReview.findOne({
+        product: product._id,
+    }).lean()
+
+    product = {
+        ...product,
+        reviews: [productReviews],
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(product))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc: product,
+    })
+})
 
 const relatedModels = [{ model: Wishlist, foreignKey: 'products' }]
 

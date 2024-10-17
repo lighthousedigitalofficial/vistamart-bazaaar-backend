@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
 import { transactionDbConnection } from '../../config/dbConnections.js'
+import AppError from '../../utils/appError.js'
 import Product from '../sellers/productModel.js'
 import Vendor from '../sellers/vendorModel.js'
 import { checkReferenceId } from '../../utils/helpers.js'

@@ -1,15 +1,19 @@
 import express from 'express'
 
 import { protect, restrictTo } from './../../middleware/authMiddleware.js'
-import reviewValidationSchema from './../../validations/reviewValidator';
 
-import { createProductReview, deleteProductReview,
-
+import {
+    createProductReview,
+    deleteProductReview,
     getAllProductReviews,
     getProductReviewById,
     updateProductReview,
-    updateProductReviewStatus,getProductWithReviews } from '../../controllers/users/reviewController.js'
-import { validateSchema } from '../../middleware/validationMiddleware.js';
+    updateProductReviewStatus,
+    getProductWithReviews,
+} from '../../controllers/users/reviewController.js'
+
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import reviewValidationSchema from './../../validations/reviewValidator.js'
 
 const router = express.Router()
 
