@@ -95,7 +95,6 @@ sellerSchema.virtual('totalProducts', {
     ref: Product,
     localField: '_id',
     foreignField: 'userId',
-    count: true,
     strictPopulate: false,
 })
 

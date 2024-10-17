@@ -10,7 +10,7 @@ import sellerRoutes from './sellers/index.js'
 const router = express.Router()
 
 // Image routes
-router.use('/upload', uploadRoutes)
+router.use('/image', uploadRoutes)
 
 // ADMIN DB ROUTES
 router.use('/admin', adminRoutes)
@@ -21,7 +21,7 @@ router.use('/user', userRoutes)
 // SELLER DB ROUTES
 router.use('/seller', sellerRoutes)
 
-router.use("/seller",sellerRoutes)
+router.use('/seller', sellerRoutes)
 // TRANSACTION DB ROUTES
 router.use('/transaction', transactionRoutes)
 
