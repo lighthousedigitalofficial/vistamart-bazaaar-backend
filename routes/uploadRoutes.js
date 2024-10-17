@@ -1,12 +1,21 @@
 import express from 'express'
 import {
-    uploadProductImage,
-    uploadSingleImage,
+    deleteImages,
+    getImageUrl,
+    getProductImageUrl,
 } from '../controllers/uploadController.js'
+import { protect, restrictTo } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-router.get('/image', uploadSingleImage)
-router.get('/image/product', uploadProductImage)
+router.get('/upload', getImageUrl)
+router.get(
+    '/upload/product',
+    protect,
+    restrictTo('admin', 'vendor'),
+    getProductImageUrl
+)
+
+router.delete('/delete-images', deleteImages)
 
 export default router
