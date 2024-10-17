@@ -1,88 +1,91 @@
-import mongoose from "mongoose";
-import AppError from "../../utils/appError.js";
-import { transactionDbConnection } from "../../config/dbConnections.js";
+import mongoose from 'mongoose'
+import AppError from '../../utils/appError.js'
+import { transactionDbConnection } from '../../config/dbConnections.js'
 
 const orderSchema = new mongoose.Schema(
-  {
-    orderId: {
-      type: Number,
+    {
+        orderId: {
+            type: Number,
+        },
+        customer: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Customer',
+            required: [true, 'Please provide customer.'],
+        },
+        vendors: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Vendor',
+                required: [true, 'Please provide vendor.'],
+            },
+        ],
+        products: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Product',
+                required: [true, 'Please provide product.'],
+            },
+        ],
+        orderStatus: {
+            type: String,
+            enum: [
+                'pending',
+                'confirmed',
+                'packaging',
+                'out_for_delivery',
+                'delivered',
+                'failed_to_deliver',
+                'returned',
+                'canceled',
+            ],
+            default: 'pending',
+        },
+
+        totalAmount: {
+            type: Number,
+            required: [true, 'Please provide total amount.'],
+        },
+        shippingMethod: {
+            type: String,
+        },
+        paymentMethod: {
+            type: String,
+            enum: [
+                'credit_card',
+                'paypal',
+                'bank_transfer',
+                'cash_on_delivery',
+            ],
+            required: true,
+        },
+        shippingAddress: {
+            type: {
+                address: String,
+                city: String,
+                state: String,
+                zipCode: String,
+                country: String,
+            },
+            required: [true, 'Please provide shipping address.'],
+        },
+        billingAddress: {
+            type: {
+                address: String,
+                city: String,
+                state: String,
+                zipCode: String,
+                country: String,
+            },
+            required: [true, 'Please provide billing address.'],
+        },
+        orderNote: {
+            type: String,
+        },
     },
-    customer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
-      required: [true, "Please provide customer."],
-    },
-    vendors: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Vendor",
-        required: [true, "Please provide vendor."],
-      },
-    ],
-    products: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: [true, "Please provide product."],
-      },
-    ],
-    orderStatus: {
-      type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "packaging",
-        "out_for_delivery",
-        "delivered",
-        "failed_to_deliver",
-        "returned",
-        "canceled",
-      ],
-      default: "pending",
-    },
-  
-    totalAmount: {
-      type: Number,
-      required: [true, "Please provide total amount."],
-    },
-    shippingMethod:{
-      type: String,
-      enum:["Leopards","Track"],
-      required: true
-    },
-    paymentMethod: {
-      type: String,
-      enum: ["credit_card", "paypal", "bank_transfer", "cash_on_delivery"],
-      required: true,
-    },
-    shippingAddress: {
-      type: {
-        address: String,
-        city: String,
-        state: String,
-        zipCode: String,
-        country: String,
-      },
-      required: [true, "Please provide shipping address."],
-    },
-    billingAddress: {
-      type: {
-        address: String,
-        city: String,
-        state: String,
-        zipCode: String,
-        country: String,
-      },
-      required: [true, "Please provide billing address."],
-    },
-    orderNote: {
-      type: String,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+    {
+        timestamps: true,
+    }
+)
 
 // orderSchema.pre(/^find/, function (next) {
 //   this.populate({
@@ -100,36 +103,42 @@ const orderSchema = new mongoose.Schema(
 //   next();
 // });
 
-orderSchema.pre("save", async function (next) {
-  try {
-    // Check if vendors are provided and validate them
-    if (this.vendors && this.vendors.length > 0) {
-      const vendorCheck = await mongoose.model("Vendor").countDocuments({
-        _id: { $in: this.vendors },
-      });
+// orderSchema.pre('save', async function (next) {
+//     try {
+//         // Check if vendors are provided and validate them
+//         if (this.vendors && this.vendors.length > 0) {
+//             const vendorCheck = await mongoose.model('Vendor').countDocuments({
+//                 _id: { $in: this.vendors },
+//             })
 
-      if (vendorCheck !== this.vendors.length) {
-        return next(new AppError("One or more vendors do not exist.", 400));
-      }
-    }
+//             if (vendorCheck !== this.vendors.length) {
+//                 return next(
+//                     new AppError('One or more vendors do not exist.', 400)
+//                 )
+//             }
+//         }
 
-    // Check if products are provided and validate them
-    if (this.products && this.products.length > 0) {
-      const productCheck = await mongoose.model("Product").countDocuments({
-        _id: { $in: this.products },
-      });
+//         // Check if products are provided and validate them
+//         if (this.products && this.products.length > 0) {
+//             const productCheck = await mongoose
+//                 .model('Product')
+//                 .countDocuments({
+//                     _id: { $in: this.products },
+//                 })
 
-      if (productCheck !== this.products.length) {
-        return next(new AppError("One or more products do not exist.", 400));
-      }
-    }
+//             if (productCheck !== this.products.length) {
+//                 return next(
+//                     new AppError('One or more products do not exist.', 400)
+//                 )
+//             }
+//         }
 
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
+//         next()
+//     } catch (err) {
+//         next(err)
+//     }
+// })
 
-const Order = transactionDbConnection.model("Order", orderSchema);
+const Order = transactionDbConnection.model('Order', orderSchema)
 
-export default Order;
+export default Order
