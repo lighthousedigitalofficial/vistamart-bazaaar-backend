@@ -27,8 +27,6 @@ export const getImageUrl = catchAsync(async (req, res, next) => {
 
     const key = `${folder}/${uuidv4()}.${fileType}`
 
-    console.log(fileType)
-
     // Use promise-based getSignedUrl to handle async properly
     const params = {
         Bucket: config.AWSS3BucketName,

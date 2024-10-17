@@ -4,6 +4,7 @@ import {
     getOne,
     updateStatus,
     updateOne,
+    getOneBySlug,
 } from '../../factory/handleFactory.js'
 import catchAsync from '../../utils/catchAsync.js'
 import AppError from '../../utils/appError.js'
@@ -118,3 +119,5 @@ export const deleteVendor = deleteOneWithTransaction(Vendor, relatedModels)
 
 // Update vendor status
 export const updateVendorStatus = updateStatus(Vendor)
+
+export const getVendorBySlug = getOneBySlug(Vendor)
