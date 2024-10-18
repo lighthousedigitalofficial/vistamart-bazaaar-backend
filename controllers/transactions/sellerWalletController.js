@@ -7,10 +7,10 @@ import Vendor from "../../models/sellers/vendorModel.js";
 
 // Controller to calculate and update seller wallet
 export const calculateSellerWallet = catchAsync(async (req, res, next) => {
-  const { sellerId } = req.query; // Change to req.query since it's a GET request
+  const { sellerId } = req.body; // Change to req.query since it's a GET request
 
   // Check if the seller exists
-  const vendor = await Vendor.findById(sellerId); 
+  const vendor = await Vendor.findById(sellerId);
   if (!vendor) {
     return next(new AppError("Referenced vendor does not exist", 400));
   }
