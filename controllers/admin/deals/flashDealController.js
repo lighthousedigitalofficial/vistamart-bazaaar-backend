@@ -1,9 +1,16 @@
-import { deleteOne, getAll, getOne, updateStatus } from '../../../factory/handleFactory.js'
+import {
+    deleteOne,
+    getAll,
+    getOne,
+    updateStatus,
+} from '../../../factory/handleFactory.js'
+import Product from '../../../models/sellers/productModel.js'
 import redisClient from '../../../config/redisConfig.js'
 import { getCacheKey } from '../../../utils/helpers.js'
 import AppError from '../../../utils/appError.js'
 import catchAsync from '../../../utils/catchAsync.js'
 import FlashDeal from '../../../models/admin/deals/flashDealModel.js'
+import Product from '../../../models/sellers/productModel.js'
 const checkExpiration = (flashDeal) => {
     const currentDate = new Date()
     const endDate = new Date(flashDeal.endDate)
