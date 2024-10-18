@@ -6,13 +6,13 @@ import AppError from './../utils/appError.js'
 import catchAsync from './../utils/catchAsync.js'
 
 import Customer from '../models/users/customerModel.js'
-import Seller from '../models/sellers/vendorModel.js'
+import Vendor from '../models/sellers/vendorModel.js'
 import Employee from '../models/admin/employeeModel.js'
 
 const models = {
-    employee: Employee,
+    sub_admin: Employee,
     admin: Employee,
-    seller: Seller,
+    vendor: Vendor,
     customer: Customer,
 }
 
@@ -105,7 +105,7 @@ export const restrictTo = (...roles) => {
     return (req, res, next) => {
         // roles is array: ['admin']
 
-        if (!roles.includes(req.user?.role?.name)) {
+        if (!roles.includes(req.user?.role?.name || req.user.role)) {
             return next(
                 new AppError(
                     'You do not have permission to perform this action.',
