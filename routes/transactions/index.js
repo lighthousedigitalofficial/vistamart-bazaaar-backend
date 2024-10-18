@@ -10,7 +10,7 @@ const router = express.Router()
 // Use the various route files
 router.use('/orders', orderRoutes)
 router.use('/refunds', redundRoutes)
-router.use('/wallet', adminWalletRoutes)
+router.use('/admin-wallet', adminWalletRoutes)
 router.use('/transaction', transactionRoutes)
 router.use('/seller-wallet', sellerWalletRoutes)
 
