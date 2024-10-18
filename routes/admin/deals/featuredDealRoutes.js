@@ -33,15 +33,15 @@ router
     .put(protect, restrictTo('admin'), updateFeaturedDeal)
 
 router
-    .route('/:id/add-product')
+    .route('/add-product/:id')
     .put(protect, restrictTo('admin'), addProductToFeaturedDeal)
 
 router
-    .route('/:id/status')
+    .route('/status/:id')
     .put(protect, restrictTo('admin'), updateFeaturedDealStatus)
 
 router
-    .route('/:id/remove-product')
+    .route('/remove-product/:id')
     .delete(protect, restrictTo('admin'), removeProductFromFeaturedDeal)
 
 export default router

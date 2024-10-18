@@ -21,7 +21,6 @@ router.use('/user', userRoutes)
 // SELLER DB ROUTES
 router.use('/seller', sellerRoutes)
 
-router.use('/seller', sellerRoutes)
 // TRANSACTION DB ROUTES
 router.use('/transaction', transactionRoutes)
 

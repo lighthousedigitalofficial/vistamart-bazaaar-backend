@@ -31,19 +31,31 @@ router
 router
     .route('/:id')
     .get(getFlashDealById)
-    .put(protect, restrictTo('admin'), updateFlashDeal)
-    .delete(protect, restrictTo('admin'), deleteFlashDeal)
+    .put(
+        protect,
+        restrictTo('admin'),
+        updateFlashDeal
+    )
+    .delete(
+        protect,
+        restrictTo('admin'),
+        deleteFlashDeal
+    )  
 
 router
     .route('/add-product/:id')
     .put(protect, restrictTo('admin'), addProductToFlashDeal)
 
 router
-    .route('/:id/remove-product')
-    .put(protect, restrictTo('admin'), removeProductFromFlashDeal)
+    .route('/remove-product/:id')
+    .put(
+        protect,
+        restrictTo('admin'),
+        removeProductFromFlashDeal
+    )
 
-router.route('/:id/status').put(updateFlashDealStatus)
+router.route('/status/:id').put(protect, restrictTo('admin'), updateFlashDealStatus)
 
-router.route('/:id/publish').put(updatePublishStatus)
+router.route('/publish/:id').put(protect, restrictTo('admin'), updatePublishStatus)
 
 export default router

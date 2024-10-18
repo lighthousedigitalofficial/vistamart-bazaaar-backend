@@ -1,6 +1,35 @@
 import mongoose from 'mongoose';
-import { transactionDbConnection } from '../../config/dbConnections.js'
+import { transactionDbConnection } from '../../config/dbConnections.js';
+
 const transactionSchema = new mongoose.Schema({
+    orderId: {
+        type: String,
+        required: [true, "'Order ID' is required"],
+        unique: true, 
+    },
+    shopName: {
+        type: String,
+        required: [true, "'Shop Name' is required"],
+        trim: true,
+    },
+    customerName: {
+        type: String,
+        required: [true, "'Customer Name' is required"],
+        trim: true,
+    },
+    totalProductAmount: {
+        type: Number,
+        required: [true, "'Total Product Amount' is required"],
+        default: 0,
+    },
+    productDiscount: {
+        type: Number,
+        default: 0,
+    },
+    couponDiscount: {
+        type: Number,
+        default: 0,
+    },
     discountedAmount: {
         type: Number,
         required: [true, "'Discounted Amount' is required"],
@@ -34,9 +63,9 @@ const transactionSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-    vendorDiscount: {
+    sellerDiscount: {
         type: Number,
-        default: 0,
+        default: 0, 
     },
     adminCommission: {
         type: Number,
@@ -48,9 +77,9 @@ const transactionSchema = new mongoose.Schema({
         required: [true, "'Admin Net Income' is required"],
         default: 0,
     },
-    vendorNetIncome: {
+    sellerNetIncome: {
         type: Number,
-        required: [true, "'Vendor Net Income' is required"],
+        required: [true, "'Seller Net Income' is required"],
         default: 0,
     },
     paymentMethod: {
@@ -58,10 +87,10 @@ const transactionSchema = new mongoose.Schema({
         trim: true,
         required: [true, "'Payment Method' is required"],
         enum: {
-            values: ['Cash', 'Digital', 'Wallet', 'Offline'],
-            message: "'Payment Method' must be either 'Cash', 'Digital', 'Wallet', or 'Offline'",
+            values: ['Cash', 'Digital', 'Wallet', 'Offline', 'credit_card'], 
+            message: "'Payment Method' must be either 'Cash', 'Digital', 'Wallet', 'Offline', or 'credit_card'",
         },
-    },
+    },    
     paymentStatus: {
         type: String,
         trim: true,
@@ -75,51 +104,6 @@ const transactionSchema = new mongoose.Schema({
         type: String,
         trim: true,
         default: '',
-    },
-    totalOrders: {
-        type: Number,
-        required: [true, "'Total Orders' is required"],
-        default: 0,
-    },
-    inHouseOrders: {
-        type: Number,
-        required: [true, "'In House Orders' is required"],
-        default: 0,
-    },
-    vendorOrders: {
-        type: Number,
-        required: [true, "'Vendor Orders' is required"],
-        default: 0,
-    },
-    totalProducts: {
-        type: Number,
-        required: [true, "'Total Products' is required"],
-        default: 0,
-    },
-    inHouseProducts: {
-        type: Number,
-        required: [true, "'In House Products' is required"],
-        default: 0,
-    },
-    vendorProducts: {
-        type: Number,
-        required: [true, "'Vendor Products' is required"],
-        default: 0,
-    },
-    totalStores: {
-        type: Number,
-        required: [true, "'Total Stores' is required"],
-        default: 0,
-    },
-    totalTransactions: {
-        type: Number,
-        required: [true, "'Total Transactions' is required"],
-        default: 0,
-    },
-    paymentStatistics: {
-        type: String,
-        enum: ['completedPayments', 'cashPayments', 'digitalPayments', 'walletPayments', 'offlinePayments'],
-        message: "'Payment Statistics' must be one of the defined values",
     },
 }, {
     timestamps: true,
