@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import AppError from '../../../utils/appError.js'
 import { adminDbConnection } from '../../../config/dbConnections.js'
+import Product from '../../sellers/productModel.js'
 
 const flashDealSchema = new mongoose.Schema(
     {
@@ -58,23 +59,13 @@ flashDealSchema.pre('save', function (next) {
     next()
 })
 
-flashDealSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'products',
-        select: 'name price thumbnail userId',
-    })
-    next()
-})
-
 flashDealSchema.pre('save', async function (next) {
     try {
         // Check if products are provided and validate them
         if (this.products && this.products.length > 0) {
-            const productCheck = await adminDbConnection
-                .model('Product')
-                .countDocuments({
-                    _id: { $in: this.products },
-                })
+            const productCheck = await Product.countDocuments({
+                _id: { $in: this.products },
+            })
 
             if (productCheck !== this.products.length) {
                 return next(

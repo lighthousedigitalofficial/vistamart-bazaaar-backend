@@ -44,11 +44,7 @@ router
 
 router
     .route('/add-product/:id')
-    .put(
-        protect,
-        restrictTo('admin'),
-        addProductToFlashDeal
-    )
+    .put(protect, restrictTo('admin'), addProductToFlashDeal)
 
 router
     .route('/remove-product/:id')

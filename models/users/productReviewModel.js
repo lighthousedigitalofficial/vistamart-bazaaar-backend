@@ -42,9 +42,6 @@ productReviewSchema.pre(/^find/, function (next) {
     this.populate({
         path: 'customer',
         select: '-__v -createdAt -updatedAt -role -status -referCode',
-    }).populate({
-        path: 'product',
-        select: '-__v -createdAt -updatedAt',
     })
     next()
 })
