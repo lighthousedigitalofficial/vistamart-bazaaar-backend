@@ -1,6 +1,8 @@
 import mongoose from 'mongoose'
 import config from './index.js'
 
+mongoose.set('strictQuery', false)
+
 // UserDB connection
 export const userDbConnection = mongoose.createConnection(config.userDbURI)
 

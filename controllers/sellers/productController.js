@@ -90,6 +90,16 @@ export const createProduct = catchAsync(async (req, res, next) => {
         )
     }
 
+    let updatedDiscountAmount = discountAmount
+
+    if (discountType === 'flat') {
+        // If the discount type is flat, use the given discountAmount
+        updatedDiscountAmount = discountAmount
+    } else if (discountType === 'percent') {
+        // If the discount type is percent, calculate the discount percentage
+        updatedDiscountAmount = (price * discount) / 100
+    }
+
     const newProduct = new Product({
         name,
         description,
@@ -105,7 +115,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         price,
         discount,
         discountType,
-        discountAmount,
+        discountAmount: updatedDiscountAmount,
         taxAmount,
         taxIncluded,
         minimumOrderQty,
