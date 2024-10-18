@@ -7,7 +7,11 @@ import uploadRoutes from './uploadRoutes.js'
 import transactionRoutes from './transactions/index.js'
 import sellerRoutes from './sellers/index.js'
 
+import { validateSessionToken } from '../middleware/authMiddleware.js'
+
 const router = express.Router()
+
+router.post('/validate-session', validateSessionToken)
 
 // Image routes
 router.use('/image', uploadRoutes)

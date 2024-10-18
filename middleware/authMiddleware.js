@@ -117,3 +117,28 @@ export const restrictTo = (...roles) => {
         next()
     }
 }
+
+export const validateSessionToken = async (req, res, next) => {
+    const { token } = req.body
+
+    try {
+        // 2) Verification token
+        const decoded = await promisify(jwt.verify)(
+            token,
+            process.env.JWT_SECRET
+        )
+
+        const { userId } = decoded
+
+        // Check token in Redis Cache
+        const refreshToken = await getRefreshToken(userId, next)
+
+        if (!refreshToken) {
+            return next(new AppError('expired', 401))
+        }
+
+        return res.status(200).json({ status: 'valid' })
+    } catch (error) {
+        return res.status(401).json({ status: 'expired' })
+    }
+}
