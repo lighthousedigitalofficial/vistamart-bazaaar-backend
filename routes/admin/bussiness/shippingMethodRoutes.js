@@ -16,8 +16,8 @@ const router = express.Router();
 router
   .route("/")
   .post(
-    protect,
-    restrictTo("admin"),
+    // protect,
+    // restrictTo("admin"),
     validateSchema(shippingMethodValidationSchema),
     createShippingMethod
   )
