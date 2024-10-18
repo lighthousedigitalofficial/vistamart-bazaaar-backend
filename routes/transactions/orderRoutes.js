@@ -31,7 +31,7 @@ router
     .delete(protect, restrictTo('admin', 'vendor'), deleteOrder)
 
 router
-    .route('/:id/status')
+    .route('/status/:id')
     .put(protect, restrictTo('admin', 'vendor'), updateOrderStatus)
 
 export default router

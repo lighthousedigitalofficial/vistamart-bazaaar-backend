@@ -192,10 +192,13 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         return next(new AppError(`No Product found with that slug`, 404))
     }
 
-    // fetch
-    const productReviews = await ProductReview.findOne({
+    let productReviews = await ProductReview.findOne({
         product: product._id,
     }).lean()
+
+    if (productReviews === null) {
+        productReviews = undefined
+    }
 
     product = {
         ...product,
