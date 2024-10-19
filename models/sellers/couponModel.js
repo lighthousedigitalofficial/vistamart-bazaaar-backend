@@ -31,7 +31,7 @@ const couponSchema = new mongoose.Schema(
     userLimit: {
       limit: {
         type: Number,
-        required: [true, "Please provide a limit for user."],
+        // required: [true, "Please provide a limit for user."],
         min: [1, "Limit must be at least 1."],
       },
       used: {
@@ -98,17 +98,17 @@ const couponSchema = new mongoose.Schema(
 );
 
 // Pre-find hook for populating vendors and customers
-couponSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: "vendors",
-    select: "shopName", // Select fields to return
-  }).populate({
-    path: "customers",
-    select: "firstName lastName", // Select fields to return
-  });
+// couponSchema.pre(/^find/, function (next) {
+//   this.populate({
+//     path: "vendors",
+//     select: "shopName", // Select fields to return
+//   }).populate({
+//     path: "customers",
+//     select: "firstName lastName", // Select fields to return
+//   });
 
-  next();
-});
+//   next();
+// });
 
 // Pre-save hook for checking vendor and customer existence
 couponSchema.pre("save", async function (next) {
