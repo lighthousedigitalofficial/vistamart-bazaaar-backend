@@ -15,6 +15,7 @@ import {
     updateStatus,
 } from '../../factory/handleFactory.js'
 import Product from '../../models/sellers/productModel.js'
+import Order from '../../models/transactions/orderModel.js'
 
 // Create a new brand
 export const createBrand = createOne(Brand)
@@ -57,7 +58,63 @@ export const getBrands = catchAsync(async (req, res, next) => {
 })
 
 // Get a brand by ID
-export const getBrandById = getOne(Brand)
+export const getBrandById = catchAsync(async (req, res, next) => {
+    const brandId = req.params.id
+    const cacheKey = getCacheKey('Brand', brandId)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let doc = await Brand.findById(brandId).lean()
+
+    if (!doc) {
+        return next(new AppError(`No brand found with that ID`, 404))
+    }
+
+    // Step 1: Fetch total products for the brand
+    const totalProducts = await Product.countDocuments({
+        brand: brandId, // Match products with the given brand ID
+    }).lean()
+
+    // Step 2: Fetch all product IDs for the brand
+    const products = await Product.find({
+        brand: brandId,
+    })
+        .select('_id')
+        .lean()
+
+    // Extract product IDs from the products
+    const productIds = products.map((product) => product._id)
+
+    // Step 3: Fetch total orders that contain these products
+    const totalOrders = await Order.countDocuments({
+        products: { $in: productIds }, // Match orders that contain any of the product IDs
+    }).lean()
+
+    doc = {
+        ...doc,
+        totalProducts,
+        totalOrders,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
+})
 
 export const getBrandBySlug = getOneBySlug(Brand)
 // Update a brand by ID
