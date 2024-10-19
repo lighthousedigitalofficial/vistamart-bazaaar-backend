@@ -10,6 +10,7 @@ import { getCacheKey } from '../../../utils/helpers.js'
 import AppError from '../../../utils/appError.js'
 import catchAsync from '../../../utils/catchAsync.js'
 import FlashDeal from '../../../models/admin/deals/flashDealModel.js'
+import { updateProductStatus } from './../../sellers/productController.js'
 
 const checkExpiration = (flashDeal) => {
     const currentDate = new Date()
@@ -50,7 +51,52 @@ export const createFlashDeal = catchAsync(async (req, res) => {
 // Get Flash Deals with Caching
 export const getFlashDeals = getAll(FlashDeal)
 // Get Flash Deal by ID
-export const getFlashDealById = getOne(FlashDeal)
+
+export const getFlashDealById = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('FlashDeal', req.params.id)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let doc = await FlashDeal.findById(req.params.id).lean()
+
+    if (!doc) {
+        return next(new AppError(`No flash deal found with that ID`, 404))
+    }
+
+    const products = await Product.find({
+        _id: { $in: doc.products },
+    }).lean()
+
+    // If no reviews are found, initialize with an empty array
+    if (!products || products.length === 0) {
+        updateProductStatus = []
+    }
+
+    // Add reviews (empty array if none found)
+    doc = {
+        ...doc,
+        products,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
+})
 
 export const updateFlashDeal = catchAsync(async (req, res, next) => {
     const { id } = req.params
