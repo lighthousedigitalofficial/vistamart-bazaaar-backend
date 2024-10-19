@@ -93,7 +93,8 @@ export const updateOne = (Model) =>
       return next(new AppError(`No ${docName} found with that ID`, 404));
     }
 
-    const cacheKeyOne = getCacheKey(Model.modelName, req.params.id);
+        const cacheKeyOne = getCacheKey(Model.modelName, filteredData.slug)
+
 
     // delete pervious document data
     await redisClient.del(cacheKeyOne);

@@ -7,43 +7,43 @@ import { checkReferenceId } from "../../utils/helpers.js";
 import Customer from "../users/customerModel.js";
 
 const orderSchema = new mongoose.Schema(
-  {
-    orderId: {
-      type: Number,
-    },
-    customer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
-      required: [true, "Please provide customer."],
-    },
-    vendors: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Vendor",
-        required: [true, "Please provide vendor."],
-      },
-    ],
-    products: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: [true, "Please provide product."],
-      },
-    ],
-    status: {
-      type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "packaging",
-        "out_for_delivery",
-        "delivered",
-        "failed_to_deliver",
-        "returned",
-        "canceled",
-      ],
-      default: "pending",
-    },
+    {
+        orderId: {
+            type: Number,
+        },
+        customer: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Customer',
+            required: [true, 'Please provide customer.'],
+        },
+        vendors: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Vendor',
+                required: [true, 'Please provide vendor.'],
+            },
+        ],
+        products: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Product',
+                required: [true, 'Please provide product.'],
+            },
+        ],
+        status: {
+            type: String,
+            enum: [
+                'pending',
+                'confirmed',
+                'packaging',
+                'out_for_delivery',
+                'delivered',
+                'failed_to_deliver',
+                'returned',
+                'canceled',
+            ],
+            default: 'pending',
+        },
 
     totalAmount: {
       type: Number,

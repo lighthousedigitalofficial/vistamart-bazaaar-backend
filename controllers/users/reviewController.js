@@ -54,7 +54,7 @@ export const createProductReview = catchAsync(async (req, res, next) => {
     const reviewCacheKey = getCacheKey('ProductReview', '', req.query)
     await redisClient.del(reviewCacheKey)
 
-    const productCacheKey = getCacheKey('Product', productId)
+    const productCacheKey = getCacheKey('Product', product.slug)
     await redisClient.del(productCacheKey)
 
     const productsCacheKey = getCacheKey('Product', '', req.query)

@@ -1,15 +1,11 @@
-import mongoose from 'mongoose'
 import Product from '../../models/sellers/productModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
 import User from '../../models/admin/employeeModel.js'
-import Color from './../../models/admin/colorModel.js'
 import catchAsync from '../../utils/catchAsync.js'
-import Attribute from '../../models/admin/attributeModel.js'
 import {
     deleteOneWithTransaction,
     getAll,
     getOne,
-    getOneBySlug,
     updateStatus,
     deleteOne,
 } from '../../factory/handleFactory.js'
@@ -23,6 +19,7 @@ import Category from '../../models/admin/categories/categoryModel.js'
 import SubCategory from '../../models/admin/categories/subCategoryModel.js'
 import SubSubCategory from '../../models/admin/categories/subSubCategoryModel.js'
 import ProductReview from '../../models/users/productReviewModel.js'
+import Order from '../../models/transactions/orderModel.js'
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
     let {
@@ -90,6 +87,16 @@ export const createProduct = catchAsync(async (req, res, next) => {
         )
     }
 
+    let updatedDiscountAmount = discountAmount
+
+    if (discountType === 'flat') {
+        // If the discount type is flat, use the given discountAmount
+        updatedDiscountAmount = discountAmount
+    } else if (discountType === 'percent') {
+        // If the discount type is percent, calculate the discount percentage
+        updatedDiscountAmount = (price * discount) / 100
+    }
+
     const newProduct = new Product({
         name,
         description,
@@ -105,7 +112,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         price,
         discount,
         discountType,
-        discountAmount,
+        discountAmount: updatedDiscountAmount,
         taxAmount,
         taxIncluded,
         minimumOrderQty,
@@ -169,7 +176,57 @@ export const updateProductImages = catchAsync(async (req, res) => {
 
 export const getAllProducts = getAll(Product)
 
-export const getProductById = getOne(Product)
+export const getProductById = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('Product', req.params.id)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let product = await Product.findById(req.params.id).lean()
+
+    if (!product) {
+        return next(new AppError(`No Product found with that Id.`, 404))
+    }
+
+    let productReviews = await ProductReview.find({
+        product: product._id,
+    }).lean()
+
+    let orders = await Order.find({
+        product: product._id,
+    }).lean()
+
+    console.log(orders)
+
+    // If no reviews are found, initialize with an empty array
+    if (!productReviews || productReviews.length === 0) {
+        productReviews = []
+    }
+
+    // Add reviews (empty array if none found)
+    product = {
+        ...product,
+        reviews: productReviews,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(product))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc: product,
+    })
+})
 
 export const getProductBySlug = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey('Product', req.params.slug)
@@ -192,14 +249,27 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         return next(new AppError(`No Product found with that slug`, 404))
     }
 
-    // fetch
-    const productReviews = await ProductReview.findOne({
+    let productReviews = await ProductReview.find({
         product: product._id,
     }).lean()
 
+    let orders = await Order.find({
+        product: product._id,
+    }).lean()
+
+    console.log(orders)
+
+    console.log(productReviews)
+
+    // If no reviews are found, initialize with an empty array
+    if (!productReviews || productReviews.length === 0) {
+        productReviews = []
+    }
+
+    // Add reviews (empty array if none found)
     product = {
         ...product,
-        reviews: [productReviews],
+        reviews: productReviews,
     }
 
     // Cache the result
@@ -229,7 +299,6 @@ export const updateProductFeaturedStatus = catchAsync(
         const product = await Product.findById(productId)
         if (!product) {
             return next(new AppError(`No product found`, 404))
-            return next(new AppError('No product found', 404))
         }
 
         product.isFeatured = isFeatured
@@ -376,12 +445,19 @@ export const updateProduct = catchAsync(async (req, res, next) => {
     )
 
     // Update cache for the product
-    const cacheKeyOne = getCacheKey('Product', updatedProduct?._id)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(updatedProduct))
+    const cacheKeyId = getCacheKey('Product', updatedProduct?._id)
+    const cacheKeySlug = getCacheKey('Product', updatedProduct?.slug)
+
+    await redisClient.del(cacheKeyId)
+    await redisClient.del(cacheKeySlug)
+
+    // Set updated product in cache
+    await redisClient.setEx(cacheKeyId, 3600, JSON.stringify(updatedProduct))
+    await redisClient.setEx(cacheKeySlug, 3600, JSON.stringify(updatedProduct))
 
     // Invalidate product list cache
-    const cacheKey = getCacheKey('Product', '', req.query)
-    await redisClient.del(cacheKey)
+    const cacheKeyModel = getCacheKey('Product', '', req.query)
+    await redisClient.del(cacheKeyModel)
 
     res.status(200).json({
         status: 'success',

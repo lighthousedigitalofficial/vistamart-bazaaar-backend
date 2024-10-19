@@ -5,16 +5,17 @@ import { promisify } from "util";
 import AppError from "./../utils/appError.js";
 import catchAsync from "./../utils/catchAsync.js";
 
-import Customer from "../models/users/customerModel.js";
-import Vendor from "../models/sellers/vendorModel.js";
-import Employee from "../models/admin/employeeModel.js";
+
+import Customer from '../models/users/customerModel.js'
+import Vendor from '../models/sellers/vendorModel.js'
+import Employee from '../models/admin/employeeModel.js'
 
 const models = {
-  employee: Employee,
-  admin: Employee,
-  vendor: Vendor,
-  customer: Customer,
-};
+    sub_admin: Employee,
+    admin: Employee,
+    vendor: Vendor,
+    customer: Customer,
+}
 
 export const selectModelByRole = (req, res, next) => {
   const userRole = req.user?.role?.name.toLowerCase();
@@ -96,15 +97,44 @@ export const protect = catchAsync(async (req, res, next) => {
 
 // restrictTo is a Wrapper function to return the middleware function
 export const restrictTo = (...roles) => {
-  return (req, res, next) => {
-    // roles is array: ['admin']
 
-    if (!roles.includes(req.user?.role?.name || req.user.role)) {
-      return next(
-        new AppError("You do not have permission to perform this action.", 403)
-      ); // 403: Forbiden
+    return (req, res, next) => {
+        // roles is array: ['admin']
+
+        if (!roles.includes(req.user?.role?.name || req.user.role)) {
+            return next(
+                new AppError(
+                    'You do not have permission to perform this action.',
+                    403
+                )
+            ) // 403: Forbiden
+        }
+
+        next()
     }
+}
 
-    next();
-  };
-};
+export const validateSessionToken = async (req, res, next) => {
+    const { token } = req.body
+
+    try {
+        // 2) Verification token
+        const decoded = await promisify(jwt.verify)(
+            token,
+            process.env.JWT_SECRET
+        )
+
+        const { userId } = decoded
+
+        // Check token in Redis Cache
+        const refreshToken = await getRefreshToken(userId, next)
+
+        if (!refreshToken) {
+            return next(new AppError('expired', 401))
+        }
+
+        return res.status(200).json({ status: 'valid' })
+    } catch (error) {
+        return res.status(401).json({ status: 'expired' })
+    }
+}

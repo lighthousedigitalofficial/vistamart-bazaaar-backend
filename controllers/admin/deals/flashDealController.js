@@ -2,6 +2,7 @@ import {
     deleteOne,
     getAll,
     getOne,
+    updatePublishStatus,
     updateStatus,
 } from '../../../factory/handleFactory.js'
 import Product from '../../../models/sellers/productModel.js'
@@ -10,7 +11,8 @@ import { getCacheKey } from '../../../utils/helpers.js'
 import AppError from '../../../utils/appError.js'
 import catchAsync from '../../../utils/catchAsync.js'
 import FlashDeal from '../../../models/admin/deals/flashDealModel.js'
-import Product from '../../../models/sellers/productModel.js'
+import { updateProductStatus } from './../../sellers/productController.js'
+
 const checkExpiration = (flashDeal) => {
     const currentDate = new Date()
     const endDate = new Date(flashDeal.endDate)
@@ -50,7 +52,52 @@ export const createFlashDeal = catchAsync(async (req, res) => {
 // Get Flash Deals with Caching
 export const getFlashDeals = getAll(FlashDeal)
 // Get Flash Deal by ID
-export const getFlashDealById = getOne(FlashDeal)
+
+export const getFlashDealById = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('FlashDeal', req.params.id)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let doc = await FlashDeal.findById(req.params.id).lean()
+
+    if (!doc) {
+        return next(new AppError(`No flash deal found with that ID`, 404))
+    }
+
+    const products = await Product.find({
+        _id: { $in: doc.products },
+    }).lean()
+
+    // If no reviews are found, initialize with an empty array
+    if (!products || products.length === 0) {
+        updateProductStatus = []
+    }
+
+    // Add reviews (empty array if none found)
+    doc = {
+        ...doc,
+        products,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
+})
 
 export const updateFlashDeal = catchAsync(async (req, res, next) => {
     const { id } = req.params
@@ -160,35 +207,4 @@ export const removeProductFromFlashDeal = catchAsync(async (req, res, next) => {
 export const updateFlashDealStatus = updateStatus(FlashDeal)
 
 // Update Publish Status of Flash Deal
-export const updatePublishStatus = catchAsync(async (req, res, next) => {
-    const { id } = req.params
-    const { publish } = req.body
-
-    // Validate publish status (true/false)
-    if (typeof publish !== 'boolean') {
-        return next(new AppError('Invalid publish status', 400))
-    }
-
-    // Update the publish status
-    const updatedFlashDeal = await FlashDeal.findByIdAndUpdate(
-        id,
-        { publish },
-        { new: true }
-    ).exec()
-
-    if (!updatedFlashDeal) {
-        return next(new AppError('Flash deal not found', 404))
-    }
-
-    const cacheKeyOne = getCacheKey('FlashDeal', id)
-    await redisClient.del(cacheKeyOne)
-
-    // delete all documents caches related to this model
-    const cacheKey = getCacheKey('FlashDeal', '')
-    await redisClient.del(cacheKey)
-
-    res.status(200).json({
-        status: 'success',
-        doc: updatedFlashDeal,
-    })
-})
+export const updatePublishFlashDeal = updatePublishStatus(FlashDeal)

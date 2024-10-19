@@ -31,7 +31,9 @@ router
   .get(protect, getOrderById)
   .delete(protect, restrictTo("admin", "vendor"), deleteOrder);
 
-router.route("/status/:id").put(updateOrderStatus);
-// .put(protect, restrictTo('admin', 'vendor'), updateOrderStatus)
+
+router
+    .route('/status/:id')
+    .put(protect, restrictTo('admin', 'vendor'), updateOrderStatus)
 
 export default router;
