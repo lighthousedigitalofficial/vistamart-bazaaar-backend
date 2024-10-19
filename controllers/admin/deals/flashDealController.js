@@ -2,6 +2,7 @@ import {
     deleteOne,
     getAll,
     getOne,
+    updatePublishStatus,
     updateStatus,
 } from '../../../factory/handleFactory.js'
 import Product from '../../../models/sellers/productModel.js'
@@ -206,35 +207,4 @@ export const removeProductFromFlashDeal = catchAsync(async (req, res, next) => {
 export const updateFlashDealStatus = updateStatus(FlashDeal)
 
 // Update Publish Status of Flash Deal
-export const updatePublishStatus = catchAsync(async (req, res, next) => {
-    const { id } = req.params
-    const { publish } = req.body
-
-    // Validate publish status (true/false)
-    if (typeof publish !== 'boolean') {
-        return next(new AppError('Invalid publish status', 400))
-    }
-
-    // Update the publish status
-    const updatedFlashDeal = await FlashDeal.findByIdAndUpdate(
-        id,
-        { publish },
-        { new: true }
-    ).exec()
-
-    if (!updatedFlashDeal) {
-        return next(new AppError('Flash deal not found', 404))
-    }
-
-    const cacheKeyOne = getCacheKey('FlashDeal', id)
-    await redisClient.del(cacheKeyOne)
-
-    // delete all documents caches related to this model
-    const cacheKey = getCacheKey('FlashDeal', '')
-    await redisClient.del(cacheKey)
-
-    res.status(200).json({
-        status: 'success',
-        doc: updatedFlashDeal,
-    })
-})
+export const updatePublishFlashDeal = updatePublishStatus(FlashDeal)

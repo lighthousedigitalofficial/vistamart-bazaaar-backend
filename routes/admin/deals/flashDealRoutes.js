@@ -1,15 +1,14 @@
 import express from 'express'
-import multer from 'multer'
 import {
     createFlashDeal,
     getFlashDeals,
     updateFlashDeal,
     addProductToFlashDeal,
     updateFlashDealStatus,
-    updatePublishStatus,
     deleteFlashDeal,
     getFlashDealById,
     removeProductFromFlashDeal,
+    updatePublishFlashDeal,
 } from '../../../controllers/admin/deals/flashDealController.js'
 import { validateSchema } from '../../../middleware/validationMiddleware.js'
 import flashDealValidationSchema from '../../../validations/flashDealValidator.js'
@@ -31,16 +30,8 @@ router
 router
     .route('/:id')
     .get(getFlashDealById)
-    .put(
-        protect,
-        restrictTo('admin'),
-        updateFlashDeal
-    )
-    .delete(
-        protect,
-        restrictTo('admin'),
-        deleteFlashDeal
-    )  
+    .put(protect, restrictTo('admin'), updateFlashDeal)
+    .delete(protect, restrictTo('admin'), deleteFlashDeal)
 
 router
     .route('/add-product/:id')
@@ -48,14 +39,14 @@ router
 
 router
     .route('/remove-product/:id')
-    .put(
-        protect,
-        restrictTo('admin'),
-        removeProductFromFlashDeal
-    )
+    .put(protect, restrictTo('admin'), removeProductFromFlashDeal)
 
-router.route('/status/:id').put(protect, restrictTo('admin'), updateFlashDealStatus)
+router
+    .route('/status/:id')
+    .put(protect, restrictTo('admin'), updateFlashDealStatus)
 
-router.route('/publish/:id').put(protect, restrictTo('admin'), updatePublishStatus)
+router
+    .route('/publish/:id')
+    .put(protect, restrictTo('admin'), updatePublishFlashDeal)
 
 export default router
