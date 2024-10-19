@@ -74,13 +74,13 @@ export const getFlashDealById = catchAsync(async (req, res, next) => {
         return next(new AppError(`No flash deal found with that ID`, 404))
     }
 
-    const products = await Product.find({
+    let products = await Product.find({
         _id: { $in: doc.products },
     }).lean()
 
     // If no reviews are found, initialize with an empty array
     if (!products || products.length === 0) {
-        updateProductStatus = []
+        products = []
     }
 
     // Add reviews (empty array if none found)
