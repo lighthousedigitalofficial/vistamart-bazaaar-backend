@@ -287,257 +287,52 @@ export const calculateAdminWallet = catchAsync(async (req, res, next) => {
 
 //calculate top customer, product, vendor
 
-// export const getTopCustomersProductsAndVendors = catchAsync(
-//   async (req, res, next) => {
-//     // Top Customers Aggregation
-//     const topCustomersPromise = Order.aggregate([
-//       {
-//         $group: {
-//           _id: "$customer", // Assuming customer is stored as an ObjectId in Order schema
-//           totalOrders: { $sum: 1 }, // Count number of orders for each customer
-//         },
-//       },
-//       {
-//         $sort: { totalOrders: -1 }, // Sort by total orders in descending order
-//       },
-//       {
-//         $limit: 5, // Limit to top 5 customers
-//       },
-//       {
-//         $lookup: {
-//           from: "customers", // Collection name must match actual collection name in the DB
-//           localField: "_id", // Match the _id field from customer
-//           foreignField: "_id", // Match customer collection _id field
-//           as: "customerDetails",
-//         },
-//       },
-//       {
-//         $unwind: "$customerDetails", // Unwind the customerDetails array
-//       },
-//       {
-//         $project: {
-//           totalOrders: 1,
-//           "customerDetails.firstName": 1,
-//           "customerDetails.lastName": 1,
-//           "customerDetails.email": 1,
-//         },
-//       },
-//     ]);
-
-//     // Top Products Aggregation
-//     const topProductsPromise = Order.aggregate([
-//       { $unwind: "$products" }, // Unwind products array in Order schema
-//       {
-//         $group: {
-//           _id: "$products.productId", // Group by product ID
-//           totalOrders: { $sum: 1 }, // Count total orders for each product
-//         },
-//       },
-//       {
-//         $sort: { totalOrders: -1 }, // Sort by total orders in descending order
-//       },
-//       {
-//         $limit: 5, // Limit to top 5 products
-//       },
-//       {
-//         $lookup: {
-//           from: "products", // Ensure collection name matches your DB
-//           localField: "_id", // Match product ID
-//           foreignField: "_id", // Product schema ID
-//           as: "productDetails",
-//         },
-//       },
-//       {
-//         $unwind: "$productDetails", // Unwind the productDetails array
-//       },
-//       {
-//         $project: {
-//           totalOrders: 1,
-//           "productDetails.name": 1,
-//           "productDetails.price": 1,
-//           "productDetails.image": 1,
-//         },
-//       },
-//     ]);
-
-//     // Top Vendors Aggregation
-//     const topVendorsPromise = Order.aggregate([
-//       { $unwind: "$vendors" }, // Unwind vendors array in Order schema
-//       {
-//         $group: {
-//           _id: "$vendors.vendorId", // Group by vendor ID
-//           totalOrders: { $sum: 1 }, // Count total orders for each vendor
-//         },
-//       },
-//       {
-//         $sort: { totalOrders: -1 }, // Sort by total orders in descending order
-//       },
-//       {
-//         $limit: 5, // Limit to top 5 vendors
-//       },
-//       {
-//         $lookup: {
-//           from: "vendors", // Ensure this matches the vendors collection
-//           localField: "_id", // Match vendor ID
-//           foreignField: "_id", // Vendor schema ID
-//           as: "vendorDetails",
-//         },
-//       },
-//       {
-//         $unwind: "$vendorDetails", // Unwind the vendorDetails array
-//       },
-//       {
-//         $project: {
-//           totalOrders: 1,
-//           "vendorDetails.shopName": 1,
-//           "vendorDetails.email": 1,
-//           "vendorDetails.phoneNumber": 1,
-//         },
-//       },
-//     ]);
-
-//     // Execute all queries in parallel
-//     const [topCustomers, topProducts, topVendors] = await Promise.all([
-//       topCustomersPromise,
-//       topProductsPromise,
-//       topVendorsPromise,
-//     ]);
-
-//     // Return the result
-//     res.status(200).json({
-//       status: "success",
-//       doc: {
-//         topCustomers,
-//         topProducts,
-//         topVendors,
-//       },
-//     });
-//   }
-// );
-
 export const getTopCustomersProductsAndVendors = catchAsync(
   async (req, res, next) => {
-    // Top Customers Aggregation
-    const topCustomersPromise = Order.aggregate([
-      {
-        $group: {
-          _id: "$customer", // Group by customer ObjectId
-          totalOrders: { $sum: 1 }, // Count the number of orders for each customer
-        },
-      },
-      {
-        $sort: { totalOrders: -1 }, // Sort by total orders in descending order
-      },
-      {
-        $limit: 5, // Limit to top 5 customers
-      },
-      {
-        $lookup: {
-          from: "customers", // Join with the 'customers' collection
-          localField: "_id", // Match on the customer _id
-          foreignField: "_id", // The foreign _id field from the Customer collection
-          as: "customerDetails", // Output as 'customerDetails'
-        },
-      },
-      {
-        $unwind: "$customerDetails", // Deconstruct the customerDetails array
-      },
-      {
-        $project: {
-          totalOrders: 1, // Show the total number of orders
-          "customerDetails.firstName": 1, // Show customer first name
-          "customerDetails.lastName": 1, // Show customer last name
-          "customerDetails.phoneNumber": 1, // Show customer phone number
-        },
-      },
-    ]);
-
-    // Top Products Aggregation
+    // Top Products Aggregation: Get the most ordered products
     const topProductsPromise = Order.aggregate([
       { $unwind: "$products" }, // Unwind products array in Order schema
       {
         $group: {
-          _id: "$products.productId", // Group by product ID
-          totalOrders: { $sum: 1 }, // Count total orders for each product
+          _id: "$products.productId", // Group by product ID inside products object
+          totalOrders: { $sum: "$products.quantity" }, // Sum up product quantities ordered
         },
       },
       {
         $sort: { totalOrders: -1 }, // Sort by total orders in descending order
       },
       {
-        $limit: 5, // Limit to top 5 products
+        $limit: 5, // Limit to top 5 most ordered products
       },
       {
         $lookup: {
-          from: "products", // Ensure collection name matches your DB
-          localField: "_id", // Match product ID
-          foreignField: "_id", // Product schema ID
-          as: "productDetails",
+          from: "products", // Join with the 'products' collection
+          localField: "_id", // Match product ID from orders
+          foreignField: "_id", // Match with _id in Product schema
+          as: "productDetails", // Store result in 'productDetails'
         },
       },
       {
-        $unwind: "$productDetails", // Unwind the productDetails array
+        $unwind: "$productDetails", // Deconstruct productDetails array
       },
       {
         $project: {
-          totalOrders: 1,
-          "productDetails.name": 1,
-          "productDetails.price": 1,
-          "productDetails.image": 1,
+          totalOrders: 1, // Show the total number of orders
+          "productDetails.name": 1, // Show product name
+          "productDetails.price": 1, // Show product price
+          "productDetails.image": 1, // Show product image
+          "productDetails.stock": 1, // Show available stock (if needed)
         },
       },
     ]);
 
-    // Top Vendors Aggregation
-    const topVendorsPromise = Order.aggregate([
-      { $unwind: "$vendors" }, // Unwind vendors array in Order schema
-      {
-        $group: {
-          _id: "$vendors.vendorId", // Group by vendor ID
-          totalOrders: { $sum: 1 }, // Count total orders for each vendor
-        },
-      },
-      {
-        $sort: { totalOrders: -1 }, // Sort by total orders in descending order
-      },
-      {
-        $limit: 5, // Limit to top 5 vendors
-      },
-      {
-        $lookup: {
-          from: "vendors", // Ensure this matches the vendors collection
-          localField: "_id", // Match vendor ID
-          foreignField: "_id", // Vendor schema ID
-          as: "vendorDetails",
-        },
-      },
-      {
-        $unwind: "$vendorDetails", // Unwind the vendorDetails array
-      },
-      {
-        $project: {
-          totalOrders: 1,
-          "vendorDetails.shopName": 1,
-          "vendorDetails.email": 1,
-          "vendorDetails.phoneNumber": 1,
-        },
-      },
-    ]);
-
-    // Execute all queries in parallel
-    const [topCustomers, topProducts, topVendors] = await Promise.all([
-      topCustomersPromise,
-      topProductsPromise,
-      topVendorsPromise,
-    ]);
+    const [topProducts] = await Promise.all([topProductsPromise]);
 
     // Return the result
     res.status(200).json({
       status: "success",
-      doc: {
-        topCustomers,
+      data: {
         topProducts,
-        topVendors,
       },
     });
   }
