@@ -133,7 +133,7 @@ const productSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      refPath: "userType",
+      ref: "vendor",
       required: [true, "Please provide Owner ID"],
     },
     userType: {
