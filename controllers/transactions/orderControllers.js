@@ -156,8 +156,6 @@ const relatedModels = [{ model: Refund, foreignKey: 'order' }]
 export const deleteOrder = deleteOneWithTransaction(Order, relatedModels)
 
 // Get order by ID
-// export const getOrderById = getOne(Order)
-// import Customer from '../users/customerModel.js';
 export const getOrderById = catchAsync(async (req, res, next) => {
     const { id } = req.params;
 
