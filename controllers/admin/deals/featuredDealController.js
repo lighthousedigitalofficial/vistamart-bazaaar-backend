@@ -22,50 +22,46 @@ export const getFeaturedDeals = getAll(FeaturedDeal)
 
 // Get Feature Deal by ID
 export const getFeaturedDealById = catchAsync(async (req, res, next) => {
-    const cacheKey = getCacheKey('FeaturedDeal', req.params.id)
+    const cacheKey = getCacheKey('FeaturedDeal', req.params.id);
 
-    // Check cache first
-    const cachedDoc = await redisClient.get(cacheKey)
+    const cachedDoc = await redisClient.get(cacheKey);
 
     if (cachedDoc) {
         return res.status(200).json({
             status: 'success',
             cached: true,
             doc: JSON.parse(cachedDoc),
-        })
+        });
     }
 
-    // If not in cache, fetch from database
-    let doc = await FeaturedDeal.findById(req.params.id).lean()
+    let doc = await FeaturedDeal.findById(req.params.id).lean();
 
     if (!doc) {
-        return next(new AppError(`No flash deal found with that ID`, 404))
+        return next(new AppError(`No featured deal found with that ID`, 404));
     }
 
-    const products = await Product.find({
+    let products = await Product.find({
         _id: { $in: doc.products },
-    }).lean()
+    }).lean();
 
-    // If no reviews are found, initialize with an empty array
     if (!products || products.length === 0) {
-        updateProductStatus = []
+        products = []; 
     }
 
-    // Add reviews (empty array if none found)
     doc = {
-        ...doc,
-        products,
-    }
+        ...doc,         
+        products: products,  
+    };
 
-    // Cache the result
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc));
 
     res.status(200).json({
         status: 'success',
         cached: false,
         doc,
-    })
-})
+    });
+});
+
 
 
 // Update Feature Deal
