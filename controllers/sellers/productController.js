@@ -205,8 +205,6 @@ export const getProductById = catchAsync(async (req, res, next) => {
         product: product._id,
     }).lean()
 
-    console.log(orders)
-
     // If no reviews are found, initialize with an empty array
     if (!productReviews || productReviews.length === 0) {
         productReviews = []
@@ -256,10 +254,6 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
     let orders = await Order.find({
         product: product._id,
     }).lean()
-
-    console.log(orders)
-
-    console.log(productReviews)
 
     // If no reviews are found, initialize with an empty array
     if (!productReviews || productReviews.length === 0) {

@@ -9,9 +9,6 @@ import APIFeatures from '../../utils/apiFeatures.js'
 import {
     createOne,
     deleteOne,
-    getAll,
-    getOne,
-    getOneBySlug,
     updateStatus,
 } from '../../factory/handleFactory.js'
 import Product from '../../models/sellers/productModel.js'
@@ -44,16 +41,49 @@ export const getBrands = catchAsync(async (req, res, next) => {
         .fieldsLimit()
         .paginate()
 
-    const doc = await features.query
+    // Fetch all brands
+    const brands = await features.query.lean()
+
+    // Fetch products and total orders for each brand
+    const brandsWithProductsAndOrders = await Promise.all(
+        brands.map(async (brand) => {
+            // Step 1: Fetch all products for the brand
+            const products = await Product.find({
+                brand: brand._id, // Match products by the brand ID
+            }).lean()
+
+            const totalProducts = products?.length || 0
+
+            // Step 2: Extract product IDs
+            const productIds = products.map((product) => product._id)
+
+            // Step 3: Count the total number of orders for these products
+            const totalOrders = await Order.countDocuments({
+                products: { $in: productIds }, // Match orders that contain any of the product IDs
+            }).lean()
+
+            // Step 4: Add products and totalOrders to the brand object
+            return {
+                ...brand,
+                products, // Array of products in this brand
+                totalOrders, // Total number of orders for these products
+                totalProducts,
+            }
+        })
+    )
 
     // Cache the result
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+    await redisClient.setEx(
+        cacheKey,
+        3600,
+        JSON.stringify(brandsWithProductsAndOrders)
+    )
 
     res.status(200).json({
         status: 'success',
         cached: false,
-        results: doc.length,
-        doc,
+        results: brandsWithProductsAndOrders.length,
+        doc: brandsWithProductsAndOrders,
     })
 })
 
@@ -81,16 +111,11 @@ export const getBrandById = catchAsync(async (req, res, next) => {
     }
 
     // Step 1: Fetch total products for the brand
-    const totalProducts = await Product.countDocuments({
+    const products = await Product.find({
         brand: brandId, // Match products with the given brand ID
     }).lean()
 
-    // Step 2: Fetch all product IDs for the brand
-    const products = await Product.find({
-        brand: brandId,
-    })
-        .select('_id')
-        .lean()
+    const totalProducts = products?.length || 0
 
     // Extract product IDs from the products
     const productIds = products.map((product) => product._id)
@@ -102,6 +127,7 @@ export const getBrandById = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
+        products,
         totalProducts,
         totalOrders,
     }
@@ -116,7 +142,62 @@ export const getBrandById = catchAsync(async (req, res, next) => {
     })
 })
 
-export const getBrandBySlug = getOneBySlug(Brand)
+export const getBrandBySlug = catchAsync(async (req, res, next) => {
+    const slug = req.params.slug
+    const cacheKey = getCacheKey('Brand', slug)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let doc = await Brand.findOne({ slug }).lean()
+
+    if (!doc) {
+        return next(new AppError(`No brand found with that slug`, 404))
+    }
+
+    const brandId = doc?._id
+
+    // Step 1: Fetch total products for the brand
+    const products = await Product.find({
+        brand: brandId, // Match products with the given brand ID
+    }).lean()
+
+    const totalProducts = products?.length || 0
+
+    // Extract product IDs from the products
+    const productIds = products.map((product) => product._id)
+
+    // Step 3: Fetch total orders that contain these products
+    const totalOrders = await Order.countDocuments({
+        products: { $in: productIds }, // Match orders that contain any of the product IDs
+    }).lean()
+
+    doc = {
+        ...doc,
+        products,
+        totalProducts,
+        totalOrders,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
+})
+
 // Update a brand by ID
 export const updateBrand = catchAsync(async (req, res) => {
     const { name, imageAltText, logo } = req.body
