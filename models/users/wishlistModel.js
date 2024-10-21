@@ -1,8 +1,10 @@
 import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
 import Customer from './customerModel.js'
 
 import { userDbConnection } from '../../config/dbConnections.js'
+import Product from '../sellers/productModel.js'
+import AppError from './../../utils/appError.js'
+import { checkReferenceId } from '../../utils/helpers.js'
 
 const wishlistSchema = new mongoose.Schema(
     {
@@ -37,9 +39,6 @@ wishlistSchema.pre('save', function (next) {
 // Pre-find hook to populate products and customer (remove .lean())
 wishlistSchema.pre(/^find/, function (next) {
     this.populate({
-        path: 'products',
-        select: '-__v -createdAt -updatedAt',
-    }).populate({
         path: 'customer', // Corrected from 'user' to 'customer'
         select: '-__v -createdAt -updatedAt -role -status -referCode',
     })
@@ -55,11 +54,9 @@ wishlistSchema.pre('save', async function (next) {
 
         // Check if products exist and validate them
         if (this.products && this.products.length > 0) {
-            const productCheck = await mongoose
-                .model('Product')
-                .countDocuments({
-                    _id: { $in: this.products },
-                })
+            const productCheck = await Product.countDocuments({
+                _id: { $in: this.products },
+            })
 
             if (productCheck !== this.products.length) {
                 return next(

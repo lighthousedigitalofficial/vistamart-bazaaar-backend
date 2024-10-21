@@ -11,6 +11,13 @@ import { validateSessionToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
+router.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: '🛒 Vista Mart API is running successfully',
+    })
+})
+
 router.post('/validate-session', validateSessionToken)
 
 // Image routes

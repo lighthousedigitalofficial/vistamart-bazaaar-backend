@@ -90,44 +90,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
     })
 })
 
-// export const getAllOrders = getAll(Order)
-
-export const getAllOrders = catchAsync(async (req, res, next) => {
-    const cacheKey = getCacheKey('FlashDeal', '', req.query);
-
-    // Check cache first
-    const cachedDoc = await redisClient.get(cacheKey);
-
-    if (cachedDoc !== null) {
-        return res.status(200).json({
-            status: 'success',
-            cached: true,
-            results: JSON.parse(cachedDoc).length,
-            data: JSON.parse(cachedDoc),
-        });
-    }
-
-    // Fetch flash deals from the database
-    const flashDeals = await FlashDeal.find().populate({
-        path: 'products',
-        select: 'name description price images', // specify the fields you want
-    });
-
-    // If no data, throw an error
-    if (!flashDeals) {
-        return next(new AppError("No flash deals found", 404));
-    }
-
-    // Cache the result
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(flashDeals));
-
-    res.status(200).json({
-        status: 'success',
-        cached: false,
-        results: flashDeals.length,
-        data: { flashDeals },
-    });
-});
+export const getAllOrders = getAll(Order)
 // Delete an order
 
 const relatedModels = [{ model: Refund, foreignKey: 'order' }]
@@ -138,40 +101,40 @@ export const deleteOrder = deleteOneWithTransaction(Order, relatedModels)
 // export const getOrderById = getOne(Order)
 // import Customer from '../users/customerModel.js';
 export const getOrderById = catchAsync(async (req, res, next) => {
-    const { id } = req.params;
+    const { id } = req.params
 
     // Fetch the order by ID
-    const order = await Order.findById(id);
+    const order = await Order.findById(id)
 
     if (!order) {
-        return next(new AppError('No order found with that ID', 404));
+        return next(new AppError('No order found with that ID', 404))
     }
 
     // Fetch related data from the respective models
-    const products = await Product.find({ _id: { $in: order.products } });
-    const vendors = await Vendor.find({ _id: { $in: order.vendors } });
+    const products = await Product.find({ _id: { $in: order.products } })
+    const vendors = await Vendor.find({ _id: { $in: order.vendors } })
     // const customer = await Customer.findById(order.customer);
 
     // Map products and vendors by their IDs for efficient lookup
     const productsMap = products.reduce((map, product) => {
-        map[product._id] = product;
-        return map;
-    }, {});
+        map[product._id] = product
+        return map
+    }, {})
 
     const vendorsMap = vendors.reduce((map, vendor) => {
-        map[vendor._id] = vendor;
-        return map;
-    }, {});
+        map[vendor._id] = vendor
+        return map
+    }, {})
 
     // Map the products array to their corresponding product documents
     const orderProducts = order.products.map(
         (productId) => productsMap[productId] || null
-    );
+    )
 
     // Map the vendors array to their corresponding vendor documents
     const orderVendors = order.vendors.map(
         (vendorId) => vendorsMap[vendorId] || null
-    );
+    )
 
     // Add full details of customer, products, and vendors to the order
     const enrichedOrder = {
@@ -179,16 +142,15 @@ export const getOrderById = catchAsync(async (req, res, next) => {
         // customer, // Add the customer object
         products: orderProducts, // Add the full product objects
         vendors: orderVendors, // Add the full vendor objects
-    };
+    }
 
     res.status(200).json({
         status: 'success',
         doc: {
             order: enrichedOrder,
         },
-    });
-});
-
+    })
+})
 
 // Update an order's status
 export const updateOrderStatus = updateStatus(Order)

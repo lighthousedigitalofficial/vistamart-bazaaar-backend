@@ -21,38 +21,12 @@ const __dirname = dirname(__filename)
 
 const app = express()
 
-// app.use(
-//     cors({
-//         origin: [
-//             'http://localhost:5173',
-//             'http://localhost:5174',
-//             'http://localhost:5175',
-//             'https://ecomuserpanel.lighthouseclouds.com/',
-//             'https://ecommercebaazaar.com/',
-//             'https://ebazaar-ten.vercel.app/',
-//             'https://ecocmadmin.vercel.app/',
-//             'https://vistamart.vercel.app/',
-//         ],
-//         methods: 'GET,POST,PUT,DELETE',
-//         credentials: true,
-//     })
-// )
-
 const corsOptions = {
     // Allows all origins, CORS will reflect the requesting origin
     origin: '*',
     credentials: true,
     optionSuccessStatus: 200,
 }
-
-app.use(
-    cors({
-        origin: '*', // Allows all origins, but only for testing
-        methods: 'GET,POST,PUT,DELETE',
-        credentials: true,
-        optionSuccessStatus: 200,
-    })
-)
 
 // Security headers first
 app.use(helmet())
@@ -75,7 +49,7 @@ if (process.env.NODE_ENV === 'development') {
 app.get('/', (req, res) => {
     res.status(200).json({
         status: 'success',
-        message: '🛒 Vistamart Bazaar is running successfully',
+        message: '🛒 Vista Mart API is running successfully',
         timestamp: new Date().toISOString(),
         version: '1.0.0',
     })
