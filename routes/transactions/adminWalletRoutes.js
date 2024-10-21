@@ -2,7 +2,6 @@ import express from "express";
 import {
   getBusinessAnalytics,
   calculateAdminWallet,
-  getTopCustomersProductsAndVendors,
 } from "../../controllers/transactions/adminWalletController.js";
 import { protect } from "../../middleware/authMiddleware.js";
 import { restrictTo } from "../../middleware/authMiddleware.js";
@@ -20,6 +19,6 @@ router.get(
 router.get("/", calculateAdminWallet);
 
 //Route Of Top Customer/Product/Selling Store
-router.get("/top", getTopCustomersProductsAndVendors);
+router.get("/top");
 
 export default router;

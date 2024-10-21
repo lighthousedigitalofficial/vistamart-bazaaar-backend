@@ -331,7 +331,7 @@ export const getTopCustomersProductsAndVendors = catchAsync(
     // Return the result
     res.status(200).json({
       status: "success",
-      data: {
+      doc: {
         topProducts,
       },
     });
