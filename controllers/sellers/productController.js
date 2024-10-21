@@ -197,6 +197,9 @@ export const getProductById = catchAsync(async (req, res, next) => {
         return next(new AppError(`No Product found with that Id.`, 404))
     }
 
+    const category = await Category.findById(product.category).lean()
+    const brand = await Brand.findById(product.brand).lean()
+
     let productReviews = await ProductReview.find({
         product: product._id,
     }).lean()
@@ -213,8 +216,10 @@ export const getProductById = catchAsync(async (req, res, next) => {
     // Add reviews (empty array if none found)
     product = {
         ...product,
-        reviews: productReviews,
+        category,
+        brand,
         orders,
+        reviews: productReviews,
     }
 
     // Cache the result
@@ -248,6 +253,9 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         return next(new AppError(`No Product found with that slug`, 404))
     }
 
+    const category = await Category.findById(product.category).lean()
+    const brand = await Brand.findById(product.brand).lean()
+
     let productReviews = await ProductReview.find({
         product: product._id,
     }).lean()
@@ -264,6 +272,9 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
     // Add reviews (empty array if none found)
     product = {
         ...product,
+        category,
+        brand,
+        orders,
         reviews: productReviews,
     }
 
