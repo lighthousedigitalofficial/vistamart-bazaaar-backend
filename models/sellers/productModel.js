@@ -42,11 +42,13 @@ const productSchema = new mongoose.Schema(
     productType: {
       type: String,
       required: [true, "Please provide Product type"],
+      enum: ["physical", "digital"],
+      default: "physical",
     },
     digitalProductType: {
       type: String,
-      enum: ["physical", "digital"],
-      default: "physical",
+      enum: ["readyAfterSell", "readyProduct"],
+      default: "readyProduct",
     },
     sku: {
       type: String,
@@ -133,7 +135,7 @@ const productSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      refPath: "userType",
+      ref: "vendor",
       required: [true, "Please provide Owner ID"],
     },
     userType: {
