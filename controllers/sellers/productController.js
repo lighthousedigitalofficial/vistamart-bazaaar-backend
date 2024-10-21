@@ -214,6 +214,7 @@ export const getProductById = catchAsync(async (req, res, next) => {
     product = {
         ...product,
         reviews: productReviews,
+        orders,
     }
 
     // Cache the result
