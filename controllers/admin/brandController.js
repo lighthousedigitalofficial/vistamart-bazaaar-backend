@@ -13,6 +13,7 @@ import {
 } from '../../factory/handleFactory.js'
 import Product from '../../models/sellers/productModel.js'
 import Order from '../../models/transactions/orderModel.js'
+import AppError from '../../utils/appError.js'
 
 // Create a new brand
 export const createBrand = createOne(Brand)

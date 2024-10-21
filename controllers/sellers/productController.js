@@ -2,13 +2,7 @@ import Product from '../../models/sellers/productModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
 import User from '../../models/admin/employeeModel.js'
 import catchAsync from '../../utils/catchAsync.js'
-import {
-    deleteOneWithTransaction,
-    getAll,
-    getOne,
-    updateStatus,
-    deleteOne,
-} from '../../factory/handleFactory.js'
+import { getAll, updateStatus, deleteOne } from '../../factory/handleFactory.js'
 import { getCacheKey } from '../../utils/helpers.js'
 import redisClient from '../../config/redisConfig.js'
 import slugify from 'slugify'
@@ -16,8 +10,6 @@ import AppError from '../../utils/appError.js'
 import Wishlist from '../../models/users/wishlistModel.js'
 import Brand from '../../models/admin/brandModel.js'
 import Category from '../../models/admin/categories/categoryModel.js'
-import SubCategory from '../../models/admin/categories/subCategoryModel.js'
-import SubSubCategory from '../../models/admin/categories/subSubCategoryModel.js'
 import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
 // Create a new product
