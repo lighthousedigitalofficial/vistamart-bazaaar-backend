@@ -15,6 +15,7 @@ import Vendor from '../../models/sellers/vendorModel.js'
 import slugify from 'slugify'
 import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
+import APIFeatures from '../../utils/apiFeatures.js'
 
 // Vendor registration (similar to createVendor but may have different logic)
 export const registerVendor = catchAsync(async (req, res, next) => {
@@ -104,8 +105,65 @@ export const updateVendorWithSlug = catchAsync(async (req, res, next) => {
 })
 
 // Get all vendors
-export const getAllVendors = getAll(Vendor, {
-    path: 'products bank',
+export const getAllVendors = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('Vendor', '', req.query)
+
+    // Check cache first
+    const cacheddoc = await redisClient.get(cacheKey)
+
+    if (cacheddoc !== null) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            results: JSON.parse(cacheddoc).length,
+            doc: JSON.parse(cacheddoc),
+        })
+    }
+
+    // EXECUTE QUERY
+    let query = Vendor.find().populate('products bank').lean()
+
+    const features = new APIFeatures(query, req.query)
+        .filter()
+        .sort()
+        .fieldsLimit()
+        .paginate()
+
+    const vendors = await features.query
+
+    // Step 2: Create an array to hold the vendor data with reviews and orders
+    const vendorsWithDetails = await Promise.all(
+        vendors.map(async (vendor) => {
+            // Step 3: Fetch reviews for the vendor's products from the external database
+            const reviews = await ProductReview.find({
+                product: { $in: vendor.products }, // Assuming vendor.products contains product IDs
+            }).lean()
+
+            // Step 4: Fetch orders for the vendor's products from the external database
+            const orders = await Order.find({
+                products: { $in: vendor.products }, // Assuming vendor.products contains product IDs
+            }).lean()
+
+            // Combine vendor, reviews, and orders into one object
+            return {
+                ...vendor,
+                reviews,
+                orders,
+                totalProducts: vendor.products.length, // Total number of products
+                totalOrders: orders.length, // Total number of orders
+            }
+        })
+    )
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(vendorsWithDetails))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        results: vendorsWithDetails.length,
+        doc: vendorsWithDetails,
+    })
 })
 
 // Get vendor by ID
