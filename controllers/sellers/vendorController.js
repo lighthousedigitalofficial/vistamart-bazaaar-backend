@@ -13,6 +13,8 @@ import redisClient from '../../config/redisConfig.js'
 import Product from '../../models/admin/business/productBusinessModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
 import slugify from 'slugify'
+import ProductReview from '../../models/users/productReviewModel.js'
+import Order from '../../models/transactions/orderModel.js'
 
 // Vendor registration (similar to createVendor but may have different logic)
 export const registerVendor = catchAsync(async (req, res, next) => {
@@ -103,12 +105,136 @@ export const updateVendorWithSlug = catchAsync(async (req, res, next) => {
 
 // Get all vendors
 export const getAllVendors = getAll(Vendor, {
-    path: 'totalProducts bank',
+    path: 'products bank',
 })
 
 // Get vendor by ID
-export const getVendorById = getOne(Vendor, {
-    path: 'totalProducts bank',
+export const getVendorById = catchAsync(async (req, res, next) => {
+    const vendorId = req.params.id
+
+    const cacheKey = getCacheKey('Vendor', vendorId)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let vendor = await Vendor.findById(vendorId)
+        .populate('products bank')
+        .lean()
+
+    if (!vendor) {
+        return next(new AppError(`No vendor found with that id`, 404))
+    }
+
+    const reviews = await ProductReview.find({
+        product: { $in: vendor.products },
+    }).lean()
+
+    // Step 1: Fetch total products for the brand
+    const products = vendor.products
+
+    const totalProducts = products?.length || 0
+    let orders = []
+
+    if (products && products.length) {
+        // Extract product IDs from the products
+        const productIds = products.map((product) => product._id)
+
+        // Step 3: Fetch total orders that contain these products
+        orders = await Order.find({
+            products: { $in: productIds }, // Match orders that contain any of the product IDs
+        }).lean()
+    }
+
+    const totalOrders = orders.length || 0
+
+    const doc = {
+        ...vendor,
+        reviews,
+        orders,
+        totalProducts,
+        totalOrders,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
+})
+
+export const getVendorBySlug = catchAsync(async (req, res, next) => {
+    const slug = req.params.slug
+
+    const cacheKey = getCacheKey('Vendor', slug)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    let vendor = await Vendor.findOne({ slug }).populate('products bank').lean()
+
+    if (!vendor) {
+        return next(new AppError(`No Vendor found with that slug`, 404))
+    }
+
+    const reviews = await ProductReview.find({
+        product: { $in: vendor.products },
+    }).lean()
+
+    // Step 1: Fetch total products for the brand
+    const products = vendor.products
+
+    const totalProducts = products?.length || 0
+    let orders = []
+
+    if (products && products.length) {
+        // Extract product IDs from the products
+        const productIds = products.map((product) => product._id)
+
+        // Step 3: Fetch total orders that contain these products
+        orders = await Order.find({
+            products: { $in: productIds }, // Match orders that contain any of the product IDs
+        }).lean()
+    }
+
+    const totalOrders = orders.length || 0
+
+    const doc = {
+        ...vendor,
+        reviews,
+        orders,
+        totalProducts,
+        totalOrders,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    })
 })
 
 // Define related models and their foreign keys
@@ -119,7 +245,3 @@ export const deleteVendor = deleteOneWithTransaction(Vendor, relatedModels)
 
 // Update vendor status
 export const updateVendorStatus = updateStatus(Vendor)
-
-export const getVendorBySlug = getOneBySlug(Vendor, {
-    path: 'totalProducts bank',
-})

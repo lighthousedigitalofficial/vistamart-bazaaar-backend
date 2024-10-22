@@ -91,12 +91,13 @@ const sellerSchema = new mongoose.Schema(
 //     strictPopulate: false,
 // })
 
-sellerSchema.virtual('totalProducts', {
+sellerSchema.virtual('products', {
     ref: Product,
     localField: '_id',
     foreignField: 'userId',
     strictPopulate: false,
 })
+
 
 sellerSchema.virtual('bank', {
     ref: 'VendorBank',
