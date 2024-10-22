@@ -1,10 +1,6 @@
 import {
     deleteOneWithTransaction,
-    getAll,
-    getOne,
     updateStatus,
-    updateOne,
-    getOneBySlug,
 } from '../../factory/handleFactory.js'
 import catchAsync from '../../utils/catchAsync.js'
 import AppError from '../../utils/appError.js'
