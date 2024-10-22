@@ -95,60 +95,65 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
 // Get all orders
 export const getAllOrders = catchAsync(async (req, res, next) => {
-    const cacheKey = getCacheKey('Order', '', req.query);
+    const cacheKey = getCacheKey('Order', '', req.query)
 
     // Check cache first
-    const cachedDoc = await redisClient.get(cacheKey);
+    const cachedDoc = await redisClient.get(cacheKey)
 
     if (cachedDoc !== null) {
         return res.status(200).json({
             status: 'success',
             cached: true,
             results: JSON.parse(cachedDoc).length,
-            data: JSON.parse(cachedDoc),
-        });
+            doc: JSON.parse(cachedDoc),
+        })
     }
 
-    const orders = await Order.find().lean();
+    const orders = await Order.find().lean()
 
     if (!orders || orders.length === 0) {
-        return next(new AppError("No orders found", 404));
+        return next(new AppError('No orders found', 404))
     }
 
-    const updatedOrders = await Promise.all(orders.map(async (doc) => {
-        let products = await Product.find({ _id: { $in: doc.products } }).lean();
-        if (!products || products.length === 0) {
-            products = []; 
-        }
+    const updatedOrders = await Promise.all(
+        orders.map(async (doc) => {
+            let products = await Product.find({
+                _id: { $in: doc.products },
+            }).lean()
+            if (!products || products.length === 0) {
+                products = []
+            }
 
-        let vendors = await Vendor.find({ _id: { $in: doc.vendors } }).lean();
-        if (!vendors || vendors.length === 0) {
-            vendors = []; 
-        }
+            let vendors = await Vendor.find({
+                _id: { $in: doc.vendors },
+            }).lean()
+            if (!vendors || vendors.length === 0) {
+                vendors = []
+            }
 
-        let customer = await Customer.findById(doc.customer).lean();
-        if (!customer) {
-            customer = {}; 
-        }
+            let customer = await Customer.findById(doc.customer).lean()
+            if (!customer) {
+                customer = {}
+            }
 
-        return {
-            ...doc,
-            products,
-            vendors,
-            customer,
-        };
-    }));
+            return {
+                ...doc,
+                products,
+                vendors,
+                customer,
+            }
+        })
+    )
 
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(updatedOrders));
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(updatedOrders))
 
     res.status(200).json({
         status: 'success',
         cached: false,
         results: updatedOrders.length,
-        data: { orders: updatedOrders },
-    });
-});
-
+        doc: updatedOrders,
+    })
+})
 
 // Delete an order
 
