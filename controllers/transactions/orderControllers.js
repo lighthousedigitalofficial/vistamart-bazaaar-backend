@@ -109,7 +109,16 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
         })
     }
 
-    const orders = await Order.find().lean()
+    // EXECUTE QUERY
+    let query = Order.find().lean()
+
+    const features = new APIFeatures(query, req.query)
+        .filter()
+        .sort()
+        .fieldsLimit()
+        .paginate()
+
+    const orders = await features.query
 
     if (!orders || orders.length === 0) {
         return next(new AppError('No orders found', 404))
