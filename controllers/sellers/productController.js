@@ -193,7 +193,6 @@ export const getProductById = catchAsync(async (req, res, next) => {
         productReviews = []
     }
 
-    const totalReviews = productReviews?.length || 0
     const totalOrders = orders?.length || 0
 
     // Add reviews (empty array if none found)
@@ -203,7 +202,6 @@ export const getProductById = catchAsync(async (req, res, next) => {
         brand,
         orders,
         reviews: productReviews,
-        totalReviews,
         totalOrders,
     }
 
@@ -254,7 +252,6 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         productReviews = []
     }
 
-    const totalReviews = productReviews?.length || 0
     const totalOrders = orders?.length || 0
 
     // Add reviews (empty array if none found)
@@ -264,7 +261,6 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         brand,
         orders,
         reviews: productReviews,
-        totalReviews,
         totalOrders,
     }
 
