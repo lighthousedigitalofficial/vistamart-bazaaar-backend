@@ -215,7 +215,54 @@ export const getOrderById = catchAsync(async (req, res, next) => {
 })
 
 // Update an order's status
-export const updateOrderStatus = updateStatus(Order)
+export const updateOrderStatus = catchAsync(async (req, res, next) => {
+    if (!req.body.status) {
+        return next(new AppError(`Please provide status value.`, 400))
+    }
+
+    // Perform the update operation
+    const doc = await Order.findByIdAndUpdate(
+        req.params.id,
+        { status: req.body.status },
+        {
+            new: true,
+            runValidators: true,
+        }
+    )
+
+    // Handle case where the document was not found
+    if (!doc) {
+        return next(new AppError(`No Order found with that ID`, 404))
+    }
+
+    // If the order status is 'delivered', increment the product sell count
+    if (req.body.status === 'delivered') {
+        // Assuming `products` is an array of product IDs in the order
+        const productIds = doc.products
+
+        for (const productId of productIds) {
+            await Product.findByIdAndUpdate(
+                productId,
+                { $inc: { sell: 1 } }, // Increment the sell count by 1
+                { new: true }
+            )
+        }
+    }
+
+    // Handle Redis cache
+    const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
+    await redisClient.del(cacheKeyOne)
+    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
+
+    // Update list cache
+    const cacheKey = getCacheKey(Model.modelName, '', req.query)
+    await redisClient.del(cacheKey)
+
+    res.status(200).json({
+        status: 'success',
+        doc,
+    })
+})
 
 export const getOrderByCustomer = catchAsync(async (req, res, next) => {
     const customerId = req.params.customerId

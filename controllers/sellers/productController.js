@@ -1,17 +1,19 @@
-import Product from '../../models/sellers/productModel.js'
-import Vendor from '../../models/sellers/vendorModel.js'
-import User from '../../models/admin/employeeModel.js'
 import catchAsync from '../../utils/catchAsync.js'
 import { getAll, updateStatus, deleteOne } from '../../factory/handleFactory.js'
 import { getCacheKey } from '../../utils/helpers.js'
 import redisClient from '../../config/redisConfig.js'
 import slugify from 'slugify'
 import AppError from '../../utils/appError.js'
+
+import Product from '../../models/sellers/productModel.js'
+import Vendor from '../../models/sellers/vendorModel.js'
 import Wishlist from '../../models/users/wishlistModel.js'
 import Brand from '../../models/admin/brandModel.js'
 import Category from '../../models/admin/categories/categoryModel.js'
 import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
+import Employee from '../../models/admin/employeeModel.js'
+
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
     let {
@@ -35,27 +37,24 @@ export const createProduct = catchAsync(async (req, res, next) => {
         minimumOrderQty,
         shippingCost,
         stock,
-        isFeatured,
         colors,
         thumbnail,
         images,
         attributePrices = [],
         videoLink,
-        userId,
-        userType,
         metaTitle,
         metaDescription,
+        userId,
+        userType,
     } = req.body
 
-    let user
-
     if (userType === 'vendor') {
-        user = await Vendor.findById(userId)
+        const user = await Vendor.findById(userId)
         if (!user) {
             return next(new AppError('Referenced vendor does not exist', 400))
         }
     } else if (userType === 'in-house') {
-        user = await User.findById(userId)
+        const user = await Employee.findById(userId)
         if (!user) {
             return next(new AppError('Referenced user does not exist', 400))
         }
@@ -63,20 +62,8 @@ export const createProduct = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid userType provided', 400))
     }
 
-    const existingProduct = await Product.findOne({
-        name,
-        'attributePrices.attribute': {
-            $in: attributePrices.map((attrPrice) => attrPrice.attribute),
-        },
-    })
-
-    if (existingProduct) {
-        return next(
-            new AppError(
-                'Product with the same name and attribute already exists',
-                400
-            )
-        )
+    if (taxIncluded) {
+        price += taxAmount
     }
 
     let updatedDiscountAmount = discountAmount
@@ -112,7 +99,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
         stock,
         thumbnail,
         images,
-        isFeatured: isFeatured || false,
         colors,
         attributes: attributePrices,
         videoLink,
@@ -296,21 +282,33 @@ export const updateProductFeaturedStatus = catchAsync(
         const productId = req.params.id
         const { isFeatured } = req.body
 
-        const product = await Product.findById(productId)
-        if (!product) {
-            return next(new AppError(`No product found`, 404))
+        // Perform the update operation
+        const doc = await Product.findByIdAndUpdate(
+            productId,
+            { isFeatured },
+            {
+                new: true,
+                runValidators: true,
+            }
+        )
+
+        // Handle case where the document was not found
+        if (!doc) {
+            return next(new AppError(`No product found with that ID`, 404))
         }
 
-        product.isFeatured = isFeatured
-        await product.save()
+        const cacheKeyOne = getCacheKey('Product', productId)
+        await redisClient.del(cacheKeyOne)
 
-        // Update cache
+        const cacheKeySlug = getCacheKey('Product', doc?.slug)
+        await redisClient.del(cacheKeySlug)
+
         const cacheKey = getCacheKey('Product', '', req.query)
         await redisClient.del(cacheKey)
 
         res.status(200).json({
             status: 'success',
-            doc: product,
+            doc,
         })
     }
 )
@@ -325,7 +323,9 @@ export const sellProduct = catchAsync(async (req, res) => {
         return next(new AppError('No product found with that ID.', 404))
     }
 
-    product.status = 'sold'
+    product.sell += 1
+
+    await product.save()
 
     res.status(200).json({
         status: 'success',
@@ -433,12 +433,11 @@ export const updateProduct = catchAsync(async (req, res, next) => {
             stock,
             isFeatured,
             colors: [colors],
-            attributes: [attributes], // Store attribute IDs
+            attributes: [attributes],
             size,
             videoLink,
             userId,
             userType,
-            status: 'pending', // Reset status after update
             slug: slugify(name, { lower: true }),
         },
         { new: true }

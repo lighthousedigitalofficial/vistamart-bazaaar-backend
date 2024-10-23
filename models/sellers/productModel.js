@@ -1,12 +1,10 @@
 import mongoose from 'mongoose'
 import { sellerDbConnection } from '../../config/dbConnections.js'
+
 import Brand from '../admin/brandModel.js'
 import Category from '../admin/categories/categoryModel.js'
 import SubCategory from '../admin/categories/subCategoryModel.js'
 import SubSubCategory from '../admin/categories/subSubCategoryModel.js'
-
-import Color from '../admin/colorModel.js'
-import Attribute from '../admin/attributeModel.js'
 
 import { checkReferenceId } from '../../utils/helpers.js'
 
@@ -50,7 +48,6 @@ const productSchema = new mongoose.Schema(
         digitalProductType: {
             type: String,
             enum: ['readyAfterSell', 'readyProduct'],
-            default: 'readyProduct',
         },
         sku: {
             type: String,
@@ -119,7 +116,6 @@ const productSchema = new mongoose.Schema(
                 attribute: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'Attribute',
-                    required: [true, 'Please provide Attribute ID'],
                 },
                 price: {
                     type: Number,
@@ -137,15 +133,18 @@ const productSchema = new mongoose.Schema(
         },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'vendor',
-            required: [true, 'Please provide Owner ID'],
+            required: [true, 'Please provide user ID'],
         },
         userType: {
             type: String,
             enum: ['vendor', 'in-house'],
-            required: [true, 'Please provide Owner type'],
+            required: [true, 'Please provide user type'],
         },
         slug: String,
+        sell: {
+            type: Number,
+            default: 0,
+        },
         rating: {
             type: Number,
             min: [0, 'Rating cannot be negative'],
@@ -173,88 +172,24 @@ productSchema.pre('save', async function (next) {
     try {
         await checkReferenceId(Category, this.category, next)
         await checkReferenceId(Brand, this.brand, next)
-        await checkReferenceId(SubCategory, this.subCategory, next)
-        await checkReferenceId(SubSubCategory, this.subSubCategory, next)
 
-        // if (this.colors && this.colors.length > 0) {
-        //   const colorDocs = await Color.find({ _id: { $in: this.colors } });
-        //   if (colorDocs.length !== this.colors.length) {
-        //     return next(
-        //       new AppError("One or more provided colors do not exist", 400)
-        //     );
-        //   }
-        // }
+        if (this.subCategory) {
+            await checkReferenceId(SubCategory, this.subCategory, next)
 
-        // if (this.attributes && this.attributes.length > 0) {
-        //   const attributeIds = this.attributes.map((attr) => attr.attribute);
-        //   const fetchedAttributes = await Attribute.find({
-        //     _id: { $in: attributeIds },
-        //   });
-
-        //   if (fetchedAttributes.length !== attributeIds.length) {
-        //     return next(
-        //       new AppError("One or more provided attributes do not exist", 400)
-        //     );
-        //   }
-
-        //   this.attributes = this.attributes.map((attrPrice) => {
-        //     const attributeName = fetchedAttributes.find(
-        //       (attr) => attr._id.toString() === attrPrice.attribute.toString()
-        //     );
-        //     return {
-        //       attribute: attributeName,
-        //       price: attrPrice.price,
-        //     };
-        //   });
-        // }
+            if (this.SubSubCategory) {
+                await checkReferenceId(
+                    SubSubCategory,
+                    this.subSubCategory,
+                    next
+                )
+            }
+        }
 
         next()
     } catch (error) {
         return next(error)
     }
 })
-
-// // Virtual middleware fetch all the reviews associated with this product
-// productSchema.virtual("reviews", {
-//   ref: "ProductReview",
-//   localField: "_id",
-//   foreignField: "product",
-// });
-
-// productSchema.virtual("totalOrders", {
-//   ref: "Order",
-//   localField: "_id",
-//   foreignField: "products",
-//   count: true,
-// });
-
-// productSchema.pre(/^find/, function (next) {
-//   this.populate({
-//     path: "category",
-//     select: "name",
-//   })
-//     .populate({
-//       path: "brand",
-//       select: "name",
-//     })
-//         .populate({
-//             path: 'brand',
-//             select: 'name',
-//         })
-//         .populate({
-//             path: 'subCategory',
-//             select: 'name',
-//         })
-//         .populate({
-//             path: 'subSubCategory',
-//             select: 'name',
-//         })
-//         .populate({
-//             path: 'attributePrices.attribute',
-//             select: 'name',
-//         })
-//     next()
-// })
 
 const Product = sellerDbConnection.model('Product', productSchema)
 
