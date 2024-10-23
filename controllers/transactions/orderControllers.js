@@ -129,6 +129,7 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
             let products = await Product.find({
                 _id: { $in: doc.products },
             }).lean()
+
             if (!products || products.length === 0) {
                 products = []
             }
