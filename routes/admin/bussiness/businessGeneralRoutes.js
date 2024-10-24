@@ -10,19 +10,25 @@ import {
 
 import { validateSchema } from "../../../middleware/validationMiddleware.js";
 import businessGeneralValidationSchema from "./../../../validations/admin/business/businessGeneralValidator.js";
+import { protect, restrictTo } from "../../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(validateSchema(businessGeneralValidationSchema), createBusinessGeneral)
+  .post(
+    protect,
+    restrictTo("admin"),
+    validateSchema(businessGeneralValidationSchema),
+    createBusinessGeneral
+  )
 
   .get(getAllBusinessGeneral);
 
 router
   .route("/:id")
   .get(getBusinessGeneralById)
-  .put(updateBusinessGeneralById)
-  .delete(deleteBusinessGeneralById);
+  .put(protect, restrictTo("admin"), updateBusinessGeneralById)
+  .delete(protect, restrictTo("admin"), deleteBusinessGeneralById);
 
 export default router;

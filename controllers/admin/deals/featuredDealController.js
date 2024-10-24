@@ -1,7 +1,4 @@
 import mongoose from 'mongoose'
-import FeaturedDeal from '../models/featuredDealModel.js'
-import Product from '../models/productModel.js'
-import catchAsync from '../utils/catchAsync.js'
 import {
     createOne,
     deleteOne,
@@ -9,10 +6,13 @@ import {
     getOne,
     updateOne,
     updateStatus,
-} from './handleFactory.js'
-import { getCacheKey } from '../utils/helpers.js'
-import redisClient from '../config/redisConfig.js'
-import AppError from '../utils/appError.js'
+} from '../../../factory/handleFactory.js'
+import FeaturedDeal from '../../../models/admin/deals/featuredDealModel.js'
+import Product from '../../../models/sellers/productModel.js'
+import catchAsync from '../../../utils/catchAsync.js'
+import { getCacheKey } from '../../../utils/helpers.js'
+import redisClient from '../../../config/redisConfig.js'
+import AppError from '../../../utils/appError.js'
 
 // Create Feature Deal
 export const createFeaturedDeal = createOne(FeaturedDeal)
@@ -21,7 +21,49 @@ export const createFeaturedDeal = createOne(FeaturedDeal)
 export const getFeaturedDeals = getAll(FeaturedDeal)
 
 // Get Feature Deal by ID
-export const getFeaturedDealById = getOne(FeaturedDeal)
+export const getFeaturedDealById = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('FeaturedDeal', req.params.id);
+
+    const cachedDoc = await redisClient.get(cacheKey);
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        });
+    }
+
+    let doc = await FeaturedDeal.findById(req.params.id).lean();
+
+    if (!doc) {
+        return next(new AppError(`No featured deal found with that ID`, 404));
+    }
+
+    let products = await Product.find({
+        _id: { $in: doc.products },
+    }).lean();
+
+    if (!products || products.length === 0) {
+        products = []; 
+    }
+
+    doc = {
+        ...doc,         
+        products: products,  
+    };
+
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc));
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        doc,
+    });
+});
+
+
+
 // Update Feature Deal
 export const updateFeaturedDeal = updateOne(FeaturedDeal)
 // Add Product to Feature Deal

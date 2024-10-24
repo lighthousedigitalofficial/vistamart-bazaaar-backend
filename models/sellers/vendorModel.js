@@ -1,6 +1,13 @@
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import validator from 'validator'
+import slugify from 'slugify'
+import Product from './productModel.js'
+import Order from './../transactions/orderModel.js'
+import {
+    sellerDbConnection,
+    transactionDbConnection,
+} from '../../config/dbConnections.js'
 
 const sellerSchema = new mongoose.Schema(
     {
@@ -64,6 +71,10 @@ const sellerSchema = new mongoose.Schema(
             type: String,
             default: 'vendor',
         },
+        slug: {
+            type: String,
+            unique: true,
+        },
     },
     {
         toJSON: { virtuals: true },
@@ -72,29 +83,29 @@ const sellerSchema = new mongoose.Schema(
     }
 )
 
-sellerSchema.virtual('totalProducts', {
-    ref: 'Product',
+// sellerSchema.virtual('totalOrders', {
+//     ref: Order,
+//     localField: '_id',
+//     foreignField: 'products',
+//     count: true,
+//     strictPopulate: false,
+// })
+
+sellerSchema.virtual('products', {
+    ref: Product,
     localField: '_id',
     foreignField: 'userId',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
+    strictPopulate: false,
 })
 
-sellerSchema.virtual('totalOrders', {
-    ref: 'Order',
+
+sellerSchema.virtual('bank', {
+    ref: 'VendorBank',
     localField: '_id',
-    foreignField: 'vendors',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
+    foreignField: 'vendor',
+    justOne: true,
+    options: { select: 'holderName accountNumber bankName branch vendor ' },
 })
-
-// sellerSchema.virtual('bank', {
-//     ref: 'VendorBank',
-//     localField: '_id',
-//     foreignField: 'vendor',
-//     justOne: true,
-//     options: { select: 'holderName accountNumber bankName branch vendor ' },
-// })
 
 sellerSchema.methods.correctPassword = async function (
     candidatePassword,
@@ -139,16 +150,13 @@ sellerSchema.pre('save', async function (next) {
     next()
 })
 
-sellerSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Product').deleteMany({ userId: doc._id })
-    }
+sellerSchema.pre('save', function (next) {
+    if (!this.isModified('shopName')) return next()
 
-    if (doc) {
-        await mongoose.model('VendorBank').deleteMany({ vendor: doc._id })
-    }
+    this.slug = slugify(this.shopName, { lower: true, strict: true })
+    next()
 })
 
-const Vendor = mongoose.model('Vendor', sellerSchema)
+const Vendor = sellerDbConnection.model('Vendor', sellerSchema)
 
 export default Vendor

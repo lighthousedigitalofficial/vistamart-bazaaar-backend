@@ -8,11 +8,12 @@ import {
     deleteFeaturedDeal,
     getFeaturedDealById,
     removeProductFromFeaturedDeal,
-} from '../controllers/featuredDealController.js'
+} from '../../../controllers/admin/deals/featuredDealController.js'
+import { validateSchema } from '../../../middleware/validationMiddleware.js'
+import featuredDealValidationSchema from '../../../validations/featuredDealValidator.js'
+import { protect } from '../../../middleware/authMiddleware.js'
+import { restrictTo } from '../../../middleware/authMiddleware.js'
 
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import featuredDealValidationSchema from './../validations/featuredDealValidator.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 router
@@ -32,15 +33,15 @@ router
     .put(protect, restrictTo('admin'), updateFeaturedDeal)
 
 router
-    .route('/:id/add-product')
+    .route('/add-product/:id')
     .put(protect, restrictTo('admin'), addProductToFeaturedDeal)
 
 router
-    .route('/:id/status')
+    .route('/status/:id')
     .put(protect, restrictTo('admin'), updateFeaturedDealStatus)
 
 router
-    .route('/:id/remove-product')
+    .route('/remove-product/:id')
     .delete(protect, restrictTo('admin'), removeProductFromFeaturedDeal)
 
 export default router

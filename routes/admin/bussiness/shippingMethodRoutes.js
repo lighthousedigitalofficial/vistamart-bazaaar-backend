@@ -9,19 +9,25 @@ import {
 
 import { validateSchema } from "../../../middleware/validationMiddleware.js";
 import shippingMethodValidationSchema from "./../../../validations/admin/business/shippingMethodValidator.js";
+import { protect, restrictTo } from "../../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(validateSchema(shippingMethodValidationSchema), createShippingMethod)
+  .post(
+    // protect,
+    // restrictTo("admin"),
+    validateSchema(shippingMethodValidationSchema),
+    createShippingMethod
+  )
 
   .get(getAllShippingMethod);
 
 router
   .route("/:id")
   .get(getShippingMethodById)
-  .put(updateShippingMethodById)
-  .delete(deleteShippingMethodById);
+  .put(protect, restrictTo("admin"), updateShippingMethodById)
+  .delete(protect, restrictTo("admin"), deleteShippingMethodById);
 
 export default router;

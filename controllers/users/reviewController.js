@@ -8,9 +8,10 @@ import {
     getOne,
     updateOne,
     updateStatus,
-} from './handleFactory.js'
-import { getCacheKey } from '../utils/helpers.js'
-import ProductReview from './../../models/users/productReviewModel'
+} from './../../factory/handleFactory.js'
+
+import { getCacheKey } from '../../utils/helpers.js'
+import ProductReview from './../../models/users/productReviewModel.js'
 import Product from '../../models/sellers/productModel.js'
 
 export const createProductReview = catchAsync(async (req, res, next) => {
@@ -53,7 +54,7 @@ export const createProductReview = catchAsync(async (req, res, next) => {
     const reviewCacheKey = getCacheKey('ProductReview', '', req.query)
     await redisClient.del(reviewCacheKey)
 
-    const productCacheKey = getCacheKey('Product', productId)
+    const productCacheKey = getCacheKey('Product', product.slug)
     await redisClient.del(productCacheKey)
 
     const productsCacheKey = getCacheKey('Product', '', req.query)
@@ -76,3 +77,22 @@ export const updateProductReview = updateOne(ProductReview)
 
 // Get ProductReview by ID
 export const getProductReviewById = getOne(ProductReview)
+
+//Custom Api for fetch reviews with product
+export const getProductWithReviews = catchAsync(async (req, res, next) => {
+    const { productId } = req.params
+
+    // Find the product by ID and populate the reviews
+    const product = await Product.findById(productId).populate('reviews') // Populating reviews
+
+    if (!product) {
+        return next(new AppError('Product not found', 404))
+    }
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            product,
+        },
+    })
+})

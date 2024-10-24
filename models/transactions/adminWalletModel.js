@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { transactionDbConnection } from "../../config/dbConnections.js";
 
 const adminWalletSchema = new mongoose.Schema(
   {
@@ -27,6 +28,6 @@ const adminWalletSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Wallet = mongoose.model("AdminWallet", adminWalletSchema);
+const Wallet = transactionDbConnection.model("AdminWallet", adminWalletSchema);
 
 export default Wallet;

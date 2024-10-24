@@ -42,6 +42,8 @@ const vendorValidationSchema = Joi.object({
             'string.empty': 'Address cannot be empty.',
         })
         .trim(),
+
+        
     vendorImage: Joi.string().optional(),
     logo: Joi.string().optional(),
     banner: Joi.string().optional(),

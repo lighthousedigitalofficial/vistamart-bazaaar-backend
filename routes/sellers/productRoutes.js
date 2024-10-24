@@ -10,22 +10,16 @@ import {
     sellProduct,
     updateProduct,
     getProductBySlug,
-} from '../../controllers/admin/adminProductController.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import productValidationSchema from './../validations/productValidator.js'
+} from '../../controllers/sellers/productController.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import productValidationSchema from '../../validations/admin/sellers/productValidator.js'
 
 const router = express.Router()
 
-// Product routes
 router
     .route('/')
-    .post(
-        protect,
-        restrictTo('admin', 'vendor'),
-        // validateSchema(productValidationSchema),
-        createProduct
-    )
+    .post(protect, restrictTo('admin', 'vendor'), createProduct)
     .get(getAllProducts)
 
 // Static routes
@@ -41,15 +35,24 @@ router.put(
 router
     .route('/:id')
     .get(getProductById)
-    .put(protect, restrictTo('admin', 'vendor'), updateProduct)
-    .delete(protect, restrictTo('admin', 'vendor'), deleteProduct)
+    .put(protect, restrictTo('admin', 'vendor', 'sub_admin'), updateProduct)
+    .delete(protect, restrictTo('admin', 'vendor', 'sub_admin'), deleteProduct)
 
-router.put('/status/:id', protect, restrictTo('admin'), updateProductStatus)
+router.put(
+    '/status/:id',
+    protect,
+    restrictTo('admin', 'sub_admin'),
+    updateProductStatus
+)
 
 router.get('/slug/:slug', getProductBySlug)
 
 router
     .route('/:id/feature')
-    .put(protect, restrictTo('admin', 'vendor'), updateProductFeaturedStatus)
+    .put(
+        protect,
+        restrictTo('admin', 'vendor', 'sub_admin'),
+        updateProductFeaturedStatus
+    )
 
 export default router

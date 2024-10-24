@@ -1,5 +1,10 @@
-import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
+import mongoose from "mongoose";
+import { transactionDbConnection } from "../../config/dbConnections.js";
+import AppError from "../../utils/appError.js";
+import Product from "../sellers/productModel.js";
+import Vendor from "../sellers/vendorModel.js";
+import { checkReferenceId } from "../../utils/helpers.js";
+import Customer from "../users/customerModel.js";
 
 const orderSchema = new mongoose.Schema(
     {
@@ -25,7 +30,7 @@ const orderSchema = new mongoose.Schema(
                 required: [true, 'Please provide product.'],
             },
         ],
-        orderStatus: {
+        status: {
             type: String,
             enum: [
                 'pending',
@@ -39,101 +44,74 @@ const orderSchema = new mongoose.Schema(
             ],
             default: 'pending',
         },
-        totalAmount: {
-            type: Number,
-            required: [true, 'Please provide total amount.'],
-        },
-        paymentMethod: {
-            type: String,
-            enum: [
-                'credit_card',
-                'paypal',
-                'bank_transfer',
-                'cash_on_delivery',
-            ],
-            required: true,
-        },
-        shippingAddress: {
-            type: {
-                address: String,
-                city: String,
-                state: String,
-                zipCode: String,
-                country: String,
-            },
-            required: [true, 'Please provide shipping address.'],
-        },
-        billingAddress: {
-            type: {
-                address: String,
-                city: String,
-                state: String,
-                zipCode: String,
-                country: String,
-            },
-            required: [true, 'Please provide billing address.'],
-        },
-        orderNote: {
-            type: String,
-        },
+
+    totalAmount: {
+      type: Number,
+      required: [true, "Please provide total amount."],
     },
-    {
-        timestamps: true,
+    shippingMethod: {
+      type: String,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["credit_card", "paypal", "bank_transfer", "cash_on_delivery"],
+      required: true,
+    },
+    shippingAddress: {
+      type: {
+        address: String,
+        city: String,
+        state: String,
+        zipCode: String,
+        country: String,
+      },
+      required: [true, "Please provide shipping address."],
+    },
+    billingAddress: {
+      type: {
+        address: String,
+        city: String,
+        state: String,
+        zipCode: String,
+        country: String,
+      },
+      required: [true, "Please provide billing address."],
+    },
+    orderNote: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+orderSchema.pre("save", async function (next) {
+  await checkReferenceId(Customer, this.customer, next);
+
+  // Check if products exist and validate them
+  if (this.products && this.products.length > 0) {
+    const productCheck = await Product.countDocuments({
+      _id: { $in: this.products },
+    });
+
+    if (productCheck !== this.products.length) {
+      return next(new AppError("One or more products do not exist.", 400));
     }
-)
+  }
 
-orderSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'vendors',
-        select: '-__v -createdAt -updatedAt -role -status',
-    })
-        .populate({
-            path: 'products',
-            select: '-__v -createdAt -updatedAt',
-        })
-        .populate({
-            path: 'customer',
-            select: '-__v -createdAt -updatedAt -role -status -referCode',
-        })
-    next()
-})
+  // Check if vendor exist and validate them
+  if (this.vendors && this.vendors.length > 0) {
+    const vendorCheck = await Vendor.countDocuments({
+      _id: { $in: this.vendors },
+    });
 
-orderSchema.pre('save', async function (next) {
-    try {
-        // Check if vendors are provided and validate them
-        if (this.vendors && this.vendors.length > 0) {
-            const vendorCheck = await mongoose.model('Vendor').countDocuments({
-                _id: { $in: this.vendors },
-            })
-
-            if (vendorCheck !== this.vendors.length) {
-                return next(
-                    new AppError('One or more vendors do not exist.', 400)
-                )
-            }
-        }
-
-        // Check if products are provided and validate them
-        if (this.products && this.products.length > 0) {
-            const productCheck = await mongoose
-                .model('Product')
-                .countDocuments({
-                    _id: { $in: this.products },
-                })
-
-            if (productCheck !== this.products.length) {
-                return next(
-                    new AppError('One or more products do not exist.', 400)
-                )
-            }
-        }
-
-        next()
-    } catch (err) {
-        next(err)
+    if (vendorCheck !== this.vendors.length) {
+      return next(new AppError("One or more vendors do not exist.", 400));
     }
-})
+  }
+});
 
-const Order = mongoose.model('Order', orderSchema)
+const Order = transactionDbConnection.model("Order", orderSchema);
 
-export default Order
+export default Order;

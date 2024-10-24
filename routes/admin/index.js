@@ -1,8 +1,8 @@
 import express from 'express'
 
-// import flashDeal from './flashDealRoutes.js'
-// import dealOfDay from './dealOfTheDayRoutes.js'
-// import featureddeal from './featuredDealRoutes.js'
+import flashDeal from './deals/flashDealRoutes.js'
+import dealOfDay from './deals/dealOfTheDayRoutes.js'
+import featureDeal from './deals/featuredDealRoutes.js'
 
 import brandsRoutes from './brandRoutes.js'
 import businessGeneralRoutes from './bussiness/businessGeneralRoutes.js'
@@ -18,7 +18,7 @@ import sellerBusinessRoutes from './bussiness/sellerBusinessRoutes.js'
 import shippinpMethodRoutes from './bussiness/shippingMethodRoutes.js'
 // import notification from './notificationRoutes.js'
 
-import couponRoutes from './couponRoutes.js'
+import couponRoutes from '../sellers/couponRoutes.js'
 import colorRoutes from './colorRoutes.js'
 import bannerRoutes from './bannerRoutes.js'
 import attributeRoutes from './attributeRoutes.js'
@@ -43,6 +43,11 @@ router.use('/banners', bannerRoutes)
 router.use('/colors', colorRoutes)
 router.use('/coupons', couponRoutes)
 router.use('/brands', brandsRoutes)
+
+//Deals
+router.use('/flash-deals', flashDeal)
+router.use('/deal-of-day', dealOfDay)
+router.use('/featured-deals', featureDeal)
 
 //Business
 router.use('/businessgeneral', businessGeneralRoutes)
