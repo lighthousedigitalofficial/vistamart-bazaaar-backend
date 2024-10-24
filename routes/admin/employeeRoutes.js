@@ -28,10 +28,7 @@ router.post('/logout', protect, logout)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)
 
-router
-    .route('/')
-    .post(protect, restrictTo('admin'), createEmployee)
-    .get(protect, restrictTo('admin'), getEmployees)
+router.route('/').post(protect, createEmployee).get(protect, getEmployees)
 
 router
     .route('/:id')

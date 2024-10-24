@@ -54,7 +54,7 @@ const employeeSchema = new mongoose.Schema(
 employeeSchema.pre(/^find/, function (next) {
     this.populate({
         path: 'role',
-        select: 'name',
+        select: 'name modules',
     })
     next()
 })

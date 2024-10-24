@@ -4,12 +4,9 @@ import validator from 'validator'
 import slugify from 'slugify'
 import Product from './productModel.js'
 import Order from './../transactions/orderModel.js'
-import {
-    sellerDbConnection,
-    transactionDbConnection,
-} from '../../config/dbConnections.js'
+import { sellerDbConnection } from '../../config/dbConnections.js'
 
-const sellerSchema = new mongoose.Schema(
+const vendorSchema = new mongoose.Schema(
     {
         firstName: {
             type: String,
@@ -83,7 +80,7 @@ const sellerSchema = new mongoose.Schema(
     }
 )
 
-// sellerSchema.virtual('totalOrders', {
+// vendorSchema.virtual('totalOrders', {
 //     ref: Order,
 //     localField: '_id',
 //     foreignField: 'products',
@@ -91,15 +88,14 @@ const sellerSchema = new mongoose.Schema(
 //     strictPopulate: false,
 // })
 
-sellerSchema.virtual('products', {
+vendorSchema.virtual('products', {
     ref: Product,
     localField: '_id',
     foreignField: 'userId',
     strictPopulate: false,
 })
 
-
-sellerSchema.virtual('bank', {
+vendorSchema.virtual('bank', {
     ref: 'VendorBank',
     localField: '_id',
     foreignField: 'vendor',
@@ -107,14 +103,14 @@ sellerSchema.virtual('bank', {
     options: { select: 'holderName accountNumber bankName branch vendor ' },
 })
 
-sellerSchema.methods.correctPassword = async function (
+vendorSchema.methods.correctPassword = async function (
     candidatePassword,
     userPassword
 ) {
     return await bcrypt.compare(candidatePassword, userPassword)
 }
 
-sellerSchema.methods.changePasswordAfter = function (JWTTimestamp) {
+vendorSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     if (this.passwordChangedAt) {
         const changeTimestamp = parseInt(
             this.passwordChangedAt.getTime() / 1000,
@@ -127,7 +123,7 @@ sellerSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     return false
 }
 
-sellerSchema.methods.createPasswordResetToken = function () {
+vendorSchema.methods.createPasswordResetToken = function () {
     const resetToken = crypto.randomBytes(32).toString('hex')
 
     this.passwordResetToken = crypto
@@ -140,7 +136,7 @@ sellerSchema.methods.createPasswordResetToken = function () {
     return resetToken
 }
 
-sellerSchema.pre('save', async function (next) {
+vendorSchema.pre('save', async function (next) {
     // Only work when the password is not modified
     if (!this.isModified('password')) return next()
 
@@ -150,13 +146,13 @@ sellerSchema.pre('save', async function (next) {
     next()
 })
 
-sellerSchema.pre('save', function (next) {
+vendorSchema.pre('save', function (next) {
     if (!this.isModified('shopName')) return next()
 
     this.slug = slugify(this.shopName, { lower: true, strict: true })
     next()
 })
 
-const Vendor = sellerDbConnection.model('Vendor', sellerSchema)
+const Vendor = sellerDbConnection.model('Vendor', vendorSchema)
 
 export default Vendor

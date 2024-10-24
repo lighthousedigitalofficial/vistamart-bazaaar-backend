@@ -19,7 +19,7 @@ const router = express.Router()
 
 router
     .route('/')
-    .post(protect, restrictTo('admin', 'vendor'), createProduct)
+    .post(protect, restrictTo('Product Management'), createProduct)
     .get(getAllProducts)
 
 // Static routes
@@ -35,7 +35,7 @@ router.put(
 router
     .route('/:id')
     .get(getProductById)
-    .put(protect, restrictTo('admin', 'vendor', 'sub_admin'), updateProduct)
+    .put(protect, restrictTo('Product Management'), updateProduct)
     .delete(protect, restrictTo('admin', 'vendor', 'sub_admin'), deleteProduct)
 
 router.put(
