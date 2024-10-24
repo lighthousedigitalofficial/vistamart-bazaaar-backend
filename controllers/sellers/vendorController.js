@@ -291,6 +291,43 @@ export const getVendorBySlug = catchAsync(async (req, res, next) => {
     })
 })
 
+export const updateShopStatus = catchAsync(async (req, res, next) => {
+    if (!req.body.shopStatus) {
+        return next(new AppError(`Please provide status value.`, 400))
+    }
+
+    // Perform the update operation
+    const doc = await Vendor.findByIdAndUpdate(
+        req.params.id,
+        { shopStatus: req.body.shopStatus },
+        {
+            new: true,
+            runValidators: true,
+        }
+    )
+
+    // Handle case where the document was not found
+    if (!doc) {
+        return next(new AppError(`No shop found with that ID`, 404))
+    }
+
+    const cacheKeyOne = getCacheKey('Vendor', req.params.id)
+
+    // delete pervious document data
+    await redisClient.del(cacheKeyOne)
+    // updated the cache with new data
+    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
+
+    // Update cache
+    const cacheKey = getCacheKey('Vendor', '', req.query)
+    await redisClient.del(cacheKey)
+
+    res.status(200).json({
+        status: 'success',
+        doc,
+    })
+})
+
 // Define related models and their foreign keys
 const relatedModels = [{ model: Product, foreignKey: 'userId' }]
 

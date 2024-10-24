@@ -58,6 +58,11 @@ const sellerSchema = new mongoose.Schema(
             enum: ['pending', 'active', 'inactive', 'rejected'],
             default: 'pending',
         },
+        shopStatus: {
+            type: String,
+            enum: ['open', 'closed'],
+            default: 'open',
+        },
         vendorImage: {
             type: String,
         },
@@ -71,6 +76,7 @@ const sellerSchema = new mongoose.Schema(
             type: String,
             default: 'vendor',
         },
+
         slug: {
             type: String,
             unique: true,
@@ -97,7 +103,6 @@ sellerSchema.virtual('products', {
     foreignField: 'userId',
     strictPopulate: false,
 })
-
 
 sellerSchema.virtual('bank', {
     ref: 'VendorBank',
