@@ -246,17 +246,20 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
     }
 
     // If the order status is 'delivered', increment the product sell count
-    if (req.body.status === 'delivered') {
-        // Assuming `products` is an array of product IDs in the order
-        const productIds = doc.products
+    for (const product of products) {
+        const { productId, quantity } = product
 
-        for (const productId of productIds) {
-            await Product.findByIdAndUpdate(
-                productId,
-                { $inc: { sell: 1 } }, // Increment the sell count by 1
-                { new: true }
-            )
-        }
+        // Update sold count by the quantity sold and reduce the stock by the same quantity
+        await Product.findByIdAndUpdate(
+            productId,
+            {
+                $inc: {
+                    sold: quantity, // Increment the sold count by the quantity sold
+                    stock: -quantity, // Decrement the stock by the quantity sold
+                },
+            },
+            { new: true }
+        )
     }
 
     // Handle Redis cache

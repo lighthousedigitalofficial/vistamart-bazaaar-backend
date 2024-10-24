@@ -16,7 +16,7 @@ router
     .route('/')
     .post(
         protect,
-        restrictTo('admin', 'vendor'),
+        restrictTo('promotion-management'),
         validateSchema(dealOfTheDayValidationSchema),
         createDealOfTheDay
     )
@@ -25,7 +25,7 @@ router
 router
     .route('/:id')
     .get(getDealOfTheDayById)
-    .put(protect, restrictTo('admin', 'vendor'), updateDealOfTheDay)
-    .delete(protect, restrictTo('admin', 'vendor'), deleteDealOfTheDay)
+    .put(protect, restrictTo('promotion-management'), updateDealOfTheDay)
+    .delete(protect, restrictTo('promotion-management'), deleteDealOfTheDay)
 
 export default router

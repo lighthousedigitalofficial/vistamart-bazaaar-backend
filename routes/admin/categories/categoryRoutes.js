@@ -17,22 +17,26 @@ import { protect, restrictTo } from './../../../middleware/authMiddleware.js'
 const router = express.Router()
 
 router
-  .route("/")
-  .post(protect, validateSchema(categoryValidationSchema), createCategory)
+    .route('/')
+    .post(
+        protect,
+        validateSchema(categoryValidationSchema),
+        restrictTo('product-management'),
+        createCategory
+    )
 
     .get(getCategories)
 
 router
-  .route("/:id")
-  .get(getCategoryById)
-  .put(protect, restrictTo("admin"), updateCategory)
-  .delete(protect, restrictTo("admin"), deleteCategory);
-
+    .route('/:id')
+    .get(getCategoryById)
+    .put(protect, restrictTo('product-management'), updateCategory)
+    .delete(protect, restrictTo('product-management'), deleteCategory)
 
 router.route('/slug/:slug').get(getCategoryBySlug)
 
 router
     .route('/:id/status')
-    .put(protect, restrictTo('admin'), updateCategoryStatus)
+    .put(protect, restrictTo('product-management'), updateCategoryStatus)
 
 export default router

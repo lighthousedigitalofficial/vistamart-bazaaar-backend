@@ -141,7 +141,7 @@ const productSchema = new mongoose.Schema(
             required: [true, 'Please provide user type'],
         },
         slug: String,
-        sell: {
+        sold: {
             type: Number,
             default: 0,
         },

@@ -28,14 +28,22 @@ router.post('/logout', protect, logout)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)
 
-router.route('/').post(protect, createEmployee).get(protect, getEmployees)
+router
+    .route('/')
+    .post(protect, restrictTo('employee-management'), createEmployee)
+    .get(protect, restrictTo('employee-management'), getEmployees)
 
 router
     .route('/:id')
-    .get(protect, restrictTo('admin'), getEmployeeById)
-    .delete(protect, restrictTo('admin'), deleteEmployee)
-    .put(protect, restrictTo('admin'), updateEmployee)
+    .get(protect, getEmployeeById)
+    .put(protect, updateEmployee)
+    .delete(protect, restrictTo('employee-management'), deleteEmployee)
 
-router.put('/status/:id', protect, restrictTo('admin'), updateEmployeeStatus)
+router.put(
+    '/status/:id',
+    protect,
+    restrictTo('employee-management'),
+    updateEmployeeStatus
+)
 
 export default router

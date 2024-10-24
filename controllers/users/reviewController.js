@@ -77,22 +77,3 @@ export const updateProductReview = updateOne(ProductReview)
 
 // Get ProductReview by ID
 export const getProductReviewById = getOne(ProductReview)
-
-//Custom Api for fetch reviews with product
-export const getProductWithReviews = catchAsync(async (req, res, next) => {
-    const { productId } = req.params
-
-    // Find the product by ID and populate the reviews
-    const product = await Product.findById(productId).populate('reviews') // Populating reviews
-
-    if (!product) {
-        return next(new AppError('Product not found', 404))
-    }
-
-    res.status(200).json({
-        status: 'success',
-        data: {
-            product,
-        },
-    })
-})

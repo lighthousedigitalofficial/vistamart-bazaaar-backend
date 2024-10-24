@@ -37,6 +37,16 @@ const employeeSchema = new mongoose.Schema(
             minlength: 8,
             select: false,
         },
+        identifyType: {
+            type: String,
+            enum: ['nid', 'passport'],
+        },
+        identifyNumber: {
+            type: Number,
+        },
+        identityImage: {
+            type: String,
+        },
         status: {
             type: String,
             enum: ['active', 'inactive'],

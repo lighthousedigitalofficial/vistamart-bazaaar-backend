@@ -13,9 +13,26 @@ import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import APIFeatures from '../../utils/apiFeatures.js'
 
-// Vendor registration (similar to createVendor but may have different logic)
-export const registerVendor = catchAsync(async (req, res, next) => {
+export const createVendor = catchAsync(async (req, res, next) => {
     const {
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+        password,
+        confirmPassword,
+        shopName,
+        address,
+        vendorImage,
+        logo,
+        banner,
+    } = req.body
+
+    if (password !== confirmPassword) {
+        return next(new AppError(`Password do not match!`, 400))
+    }
+
+    const newVendor = new Vendor({
         firstName,
         lastName,
         phoneNumber,
@@ -23,9 +40,45 @@ export const registerVendor = catchAsync(async (req, res, next) => {
         password,
         shopName,
         address,
+        vendorImage,
+        logo,
+        banner,
+    })
+
+    const doc = await newVendor.save()
+
+    if (!doc) {
+        return next(new AppError(`Vendor could not be created`, 400))
+    }
+
+    // Delete all documents caches related to this model
+    const cacheKey = getCacheKey('Vendor', '', req.query)
+    await redisClient.del(cacheKey)
+
+    res.status(201).json({
+        status: 'success',
+        doc,
+    })
+})
+
+export const registerVendor = catchAsync(async (req, res, next) => {
+    const {
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+        password,
+        confirmPassword,
+        shopName,
+        address,
+        vendorImage,
+        logo,
+        banner,
     } = req.body
 
-    const { vendorImage, logo, banner } = req.body
+    if (password !== confirmPassword) {
+        return next(new AppError(`Password do not match.`, 400))
+    }
 
     const newVendor = new Vendor({
         firstName,
@@ -57,10 +110,11 @@ export const registerVendor = catchAsync(async (req, res, next) => {
 })
 
 //update the slug on the basis of shop name
-export const updateVendorWithSlug = catchAsync(async (req, res, next) => {
+export const updateVendor = catchAsync(async (req, res, next) => {
     const { id } = req.params
 
     const vendor = await Vendor.findById(id)
+
     if (!vendor) {
         return next(new AppError(`No vendor found with that ID`, 404))
     }
@@ -69,12 +123,6 @@ export const updateVendorWithSlug = catchAsync(async (req, res, next) => {
 
     if (updatedData.shopName) {
         updatedData.slug = slugify(updatedData.shopName, { lower: true })
-
-        const existingVendor = await Vendor.findOne({ slug: updatedData.slug })
-        if (existingVendor && existingVendor._id.toString() !== id) {
-            const timestamp = Date.now()
-            updatedData.slug = `${updatedData.slug}-${timestamp}`
-        }
     }
 
     const updatedVendor = await Vendor.findByIdAndUpdate(id, updatedData, {
@@ -86,12 +134,12 @@ export const updateVendorWithSlug = catchAsync(async (req, res, next) => {
         return next(new AppError(`No vendor found with that ID`, 404))
     }
 
-    const cacheKeyOne = getCacheKey(Vendor.modelName, id)
+    const cacheKeyOne = getCacheKey('Vendor', id)
 
     await redisClient.del(cacheKeyOne)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(updatedVendor))
 
-    const cacheKey = getCacheKey(Vendor.modelName, '', req.query)
+    const cacheKey = getCacheKey('Vendor', '', req.query)
     await redisClient.del(cacheKey)
 
     res.status(200).json({

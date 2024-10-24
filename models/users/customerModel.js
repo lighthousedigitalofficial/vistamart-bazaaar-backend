@@ -59,7 +59,7 @@ const customerSchema = new mongoose.Schema(
             enum: ['customer'],
             default: 'customer',
         },
-        referCode: { 
+        referCode: {
             type: String,
         },
         password: {
@@ -136,13 +136,6 @@ customerSchema.pre('save', function (next) {
     this.passwordChangedAt = Date.now() - 1000
 
     next()
-})
-
-// if customer deleted, also Delete all the related reveiws to the customer
-customerSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await userDbConnection.model('Review').deleteMany({ customer: doc._id })
-    }
 })
 
 const Customer = userDbConnection.model('Customer', customerSchema)

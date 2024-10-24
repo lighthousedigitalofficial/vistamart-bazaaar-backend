@@ -14,19 +14,19 @@ const router = express.Router()
 
 router
     .route('/')
-    .post(protect, restrictTo('admin'), createBanner)
+    .post(protect, restrictTo('promotion-management'), createBanner)
     .get(getBanners)
 
 router
     .route('/:id', checkObjectId)
     .get(getBannerById)
-    .put(protect, restrictTo('admin'), updateBanner)
-    .delete(protect, restrictTo('admin'), deleteBanner)
+    .put(protect, restrictTo('promotion-management'), updateBanner)
+    .delete(protect, restrictTo('promotion-management'), deleteBanner)
 
 router.put(
     '/publish/:id',
     protect,
-    restrictTo('admin'),
+    restrictTo('promotion-management'),
     updateBannerPublishStatus
 )
 

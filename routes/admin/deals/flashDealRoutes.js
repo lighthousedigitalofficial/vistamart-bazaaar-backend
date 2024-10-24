@@ -10,8 +10,10 @@ import {
     removeProductFromFlashDeal,
     updatePublishFlashDeal,
 } from '../../../controllers/admin/deals/flashDealController.js'
+
 import { validateSchema } from '../../../middleware/validationMiddleware.js'
 import flashDealValidationSchema from '../../../validations/flashDealValidator.js'
+
 import { protect } from '../../../middleware/authMiddleware.js'
 import { restrictTo } from '../../../middleware/authMiddleware.js'
 
@@ -21,7 +23,7 @@ router
     .route('/')
     .post(
         protect,
-        restrictTo('admin'),
+        restrictTo('promotion-management'),
         validateSchema(flashDealValidationSchema),
         createFlashDeal
     )
@@ -30,23 +32,27 @@ router
 router
     .route('/:id')
     .get(getFlashDealById)
-    .put(protect, restrictTo('admin'), updateFlashDeal)
-    .delete(protect, restrictTo('admin'), deleteFlashDeal)
+    .put(protect, restrictTo('promotion-management'), updateFlashDeal)
+    .delete(protect, restrictTo('promotion-management'), deleteFlashDeal)
 
 router
     .route('/add-product/:id')
-    .put(protect, restrictTo('admin'), addProductToFlashDeal)
+    .put(protect, restrictTo('promotion-management'), addProductToFlashDeal)
 
 router
     .route('/remove-product/:id')
-    .put(protect, restrictTo('admin'), removeProductFromFlashDeal)
+    .put(
+        protect,
+        restrictTo('promotion-management'),
+        removeProductFromFlashDeal
+    )
 
 router
     .route('/status/:id')
-    .put(protect, restrictTo('admin'), updateFlashDealStatus)
+    .put(protect, restrictTo('promotion-management'), updateFlashDealStatus)
 
 router
     .route('/publish/:id')
-    .put(protect, restrictTo('admin'), updatePublishFlashDeal)
+    .put(protect, restrictTo('promotion-management'), updatePublishFlashDeal)
 
 export default router

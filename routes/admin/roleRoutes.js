@@ -16,7 +16,7 @@ router.route('/').post(protect, createRole).get(protect, getRoles)
 router
     .route('/:id')
     .get(protect, restrictTo('admin'), getRoleById)
-    .put(protect, restrictTo('admin'), updateRole)
-    .delete(protect, restrictTo('admin'), deleteRole)
+    .put(protect, updateRole)
+    .delete(protect, deleteRole)
 
 export default router
