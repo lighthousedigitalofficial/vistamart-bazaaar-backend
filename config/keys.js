@@ -2,8 +2,12 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const config = {
+const keys = {
     port: process.env.PORT || 3000,
+
+    // Redis db
+    redisURL: process.env.REDIS_URL,
+    redisPassword: process.env.REDIS_PASSWORD,
     // Databases
     adminDbURI: process.env.ADMIN_DB_URI,
     sellerDbURI: process.env.SELLER_DB_URI,
@@ -22,6 +26,17 @@ const config = {
     accessTokenExpiresIn: process.env.JWT_ACCESS_TIME,
     refreshTokenExpiresIn: process.env.JWT_REFRESH_TIME,
     redisUrl: process.env.REDIS_URL,
+
+    // Email Configuration keys
+    emailAddress: process.env.EMAIL_ADDRESS,
+    emailPassKey: process.env.EMAIL_PASS_KEY,
+
+    // Twilio Configuration keys
+    twilioAccountSID: process.env.TWILIO_ACCOUNT_SID,
+    twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
+    twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
+
+    otpSecretKey: process.env.OTP_SECRET_KEY,
 }
 
-export default config
+export default keys

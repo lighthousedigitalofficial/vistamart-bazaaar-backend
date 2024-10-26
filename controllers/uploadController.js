@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk'
 import { v4 as uuidv4 } from 'uuid'
 
-import config from '../config/index.js'
+import config from '../config/keys.js'
 import catchAsync from '../utils/catchAsync.js'
 import AppError from '../utils/appError.js'
 
@@ -36,8 +36,6 @@ export const getImageUrl = catchAsync(async (req, res, next) => {
     }
 
     const url = s3.getSignedUrl('putObject', params)
-
-    console.log(url)
 
     res.status(200).send({ key, url })
 })

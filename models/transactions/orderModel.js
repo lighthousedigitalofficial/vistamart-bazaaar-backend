@@ -25,7 +25,7 @@ const orderSchema = new mongoose.Schema(
         ],
         products: [
             {
-                productId: {
+                product: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'Product',
                     required: [true, 'Please provide product.'],
@@ -103,9 +103,11 @@ orderSchema.pre('save', async function (next) {
 
     // Check if products exist and validate them
     if (this.products && this.products.length > 0) {
+        const productIds = this.products.map((p) => p.product)
+
         const productCheck = await Product.countDocuments({
-            _id: { $in: this.products },
-        })
+            _id: { $in: productIds },
+        }).lean()
 
         if (productCheck !== this.products.length) {
             return next(new AppError('One or more products do not exist.', 400))

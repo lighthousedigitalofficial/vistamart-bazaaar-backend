@@ -5,6 +5,7 @@ const orderValidationSchema = Joi.object({
         'any.required': 'Customer ID is required',
         'string.base': 'Customer ID must be a string',
     }),
+
     vendors: Joi.array()
         .items(
             Joi.string().required().messages({
@@ -18,9 +19,16 @@ const orderValidationSchema = Joi.object({
         }),
     products: Joi.array()
         .items(
-            Joi.string().required().messages({
-                'any.required': 'Product ID is required',
-                'string.base': 'Product ID must be a string',
+            Joi.object({
+                product: Joi.string().required().messages({
+                    'any.required': 'Product ID is required',
+                    'string.base': 'Product ID must be a string',
+                }),
+                quantity: Joi.number().integer().min(1).required().messages({
+                    'any.required': 'Quantity is required',
+                    'number.base': 'Quantity must be a number',
+                    'number.min': 'Quantity cannot be less than 1',
+                }),
             })
         )
         .required()
@@ -31,6 +39,10 @@ const orderValidationSchema = Joi.object({
     totalAmount: Joi.number().required().messages({
         'any.required': 'Total amount is required',
         'number.base': 'Total amount must be a number',
+    }),
+    shpippingMethod: Joi.string().required().messages({
+        'any.required': 'Shipping Method is required',
+        'string.base': 'Shipping Method must be a string',
     }),
     paymentMethod: Joi.string()
         .valid('credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery')

@@ -1,20 +1,23 @@
-import redisClient from '../../config/redisConfig.js'
-import Coupon from '../../models/sellers/couponModel.js' // Adjust this based on your actual directory structure
-import Order from '../../models/transactions/orderModel.js'
-import AppError from '../../utils/appError.js'
-import Refund from '../../models/transactions/refundModel.js'
-import APIFeatures from '../../utils/apiFeatures.js'
+import { v4 as uuidv4 } from 'uuid'
+
 import catchAsync from '../../utils/catchAsync.js'
+import redisClient from '../../config/redisConfig.js'
+import APIFeatures from '../../utils/apiFeatures.js'
 import { getCacheKey } from '../../utils/helpers.js'
-import {
-    deleteOneWithTransaction,
-    getAll,
-    getOne,
-    updateStatus,
-} from '../../factory/handleFactory.js'
+
 import Product from '../../models/sellers/productModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
 import Customer from '../../models/users/customerModel.js'
+import Coupon from '../../models/sellers/couponModel.js'
+import Order from '../../models/transactions/orderModel.js'
+import AppError from '../../utils/appError.js'
+import Refund from '../../models/transactions/refundModel.js'
+
+import {
+    deleteOneWithTransaction,
+    getOne,
+    updateStatus,
+} from '../../factory/handleFactory.js'
 
 const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     // Find the coupon by ID
@@ -34,6 +37,17 @@ const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     await coupon.save({ validateBeforeSave: true })
 })
 
+function generateOrderId() {
+    // Generate a UUID
+    const uuid = uuidv4()
+
+    // Convert it into a number by taking the first 6 characters of its hash
+    const orderId = parseInt(uuid.replace(/-/g, '').slice(0, 6), 16)
+
+    // Ensure it's exactly 6 digits by padding or trimming
+    return orderId.toString().padStart(6, '0').slice(0, 6)
+}
+
 // Create a new order
 export const createOrder = catchAsync(async (req, res, next) => {
     const {
@@ -52,12 +66,6 @@ export const createOrder = catchAsync(async (req, res, next) => {
     if (couponId) {
         updateCouponUserLimit(couponId, next)
     }
-
-    function generateOrderId() {
-        // Generates a random number between 1000 and 9999
-        return Math.floor(1000 + Math.random() * 9000)
-    }
-
     const newOrder = {
         orderId: generateOrderId(),
         coupon: couponId ? couponId : undefined,
@@ -96,11 +104,9 @@ export const createOrder = catchAsync(async (req, res, next) => {
 // Get all orders
 export const getAllOrders = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey('Order', '', req.query)
-
-    // Check cache first
     const cachedDoc = await redisClient.get(cacheKey)
 
-    if (cachedDoc !== null) {
+    if (cachedDoc) {
         return res.status(200).json({
             status: 'success',
             cached: true,
@@ -109,9 +115,7 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
         })
     }
 
-    // EXECUTE QUERY
     let query = Order.find().lean()
-
     const features = new APIFeatures(query, req.query)
         .filter()
         .sort()
@@ -119,49 +123,40 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
         .paginate()
 
     const orders = await features.query
-
     if (!orders || orders.length === 0) {
         return next(new AppError('No orders found', 404))
     }
 
-    const updatedOrders = await Promise.all(
-        orders.map(async (doc) => {
-            let products = await Product.find({
-                _id: { $in: doc.products },
-            }).lean()
-
-            if (!products || products.length === 0) {
-                products = []
-            }
-
-            let vendors = await Vendor.find({
-                _id: { $in: doc.vendors },
-            }).lean()
-            if (!vendors || vendors.length === 0) {
-                vendors = []
-            }
-
-            let customer = await Customer.findById(doc.customer).lean()
-            if (!customer) {
-                customer = {}
-            }
-
-            return {
-                ...doc,
-                products,
-                vendors,
-                customer,
-            }
-        })
+    // Batch fetching all products, vendors, and customers
+    const productIds = orders.flatMap((order) =>
+        order.products.map((p) => p.product)
     )
+    const vendorIds = orders.map((order) => order.vendor)
+    const customerIds = orders.map((order) => order.customer)
 
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(updatedOrders))
+    const [products, vendors, customers] = await Promise.all([
+        Product.find({ _id: { $in: productIds } }).lean(),
+        Vendor.find({ _id: { $in: vendorIds } }).lean(),
+        Customer.find({ _id: { $in: customerIds } }).lean(),
+    ])
+
+    const totalOrders = orders.map((order) => ({
+        ...order,
+        products: order.products.map((p) => ({
+            ...p,
+            product: products.find((prod) => prod._id.equals(p.product)),
+        })),
+        vendor: vendors.find((v) => v._id.equals(order.vendor)),
+        customer: customers.find((c) => c._id.equals(order.customer)),
+    }))
+
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(totalOrders))
 
     res.status(200).json({
         status: 'success',
         cached: false,
-        results: updatedOrders.length,
-        doc: updatedOrders,
+        results: totalOrders.length,
+        doc: totalOrders,
     })
 })
 
@@ -246,12 +241,12 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
     }
 
     // If the order status is 'delivered', increment the product sell count
-    for (const product of products) {
-        const { productId, quantity } = product
+    for (const item of doc?.products) {
+        const { product, quantity } = item
 
         // Update sold count by the quantity sold and reduce the stock by the same quantity
         await Product.findByIdAndUpdate(
-            productId,
+            product,
             {
                 $inc: {
                     sold: quantity, // Increment the sold count by the quantity sold
@@ -260,15 +255,21 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
             },
             { new: true }
         )
+
+        const cacheProductKey = getCacheKey('Product', product)
+        await redisClient.del(cacheProductKey)
     }
 
+    const cacheProduct = getCacheKey('Product')
+    await redisClient.del(cacheProduct)
+
     // Handle Redis cache
-    const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
+    const cacheKeyOne = getCacheKey('Order', req.params.id)
     await redisClient.del(cacheKeyOne)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
 
     // Update list cache
-    const cacheKey = getCacheKey(Model.modelName, '', req.query)
+    const cacheKey = getCacheKey('Order', '', req.query)
     await redisClient.del(cacheKey)
 
     res.status(200).json({

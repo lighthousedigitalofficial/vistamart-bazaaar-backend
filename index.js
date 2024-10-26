@@ -1,4 +1,4 @@
-import config from './config/index.js'
+import config from './config/keys.js'
 // import connectDB from './config/dbConnections.js'
 import cron from 'node-cron'
 

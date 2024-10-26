@@ -1,18 +1,18 @@
 import mongoose from 'mongoose'
-import config from './index.js'
+import keys from './keys.js'
 
 mongoose.set('strictQuery', false)
 
 // UserDB connection
-export const userDbConnection = mongoose.createConnection(config.userDbURI)
+export const userDbConnection = mongoose.createConnection(keys.userDbURI)
 
 // AdminDB connection
-export const adminDbConnection = mongoose.createConnection(config.adminDbURI)
+export const adminDbConnection = mongoose.createConnection(keys.adminDbURI)
 
 // TransactionDB connection
 export const transactionDbConnection = mongoose.createConnection(
-    config.transcationDbURI
+    keys.transcationDbURI
 )
 
 // SellerDB connection
-export const sellerDbConnection = mongoose.createConnection(config.sellerDbURI)
+export const sellerDbConnection = mongoose.createConnection(keys.sellerDbURI)
