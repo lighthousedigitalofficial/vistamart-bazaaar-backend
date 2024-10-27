@@ -14,6 +14,7 @@ import {
     updatePassword,
     forgotPassword,
     resetPassword,
+    verifyCustomerOTPViaEmail,
 } from '../../controllers/authController.js'
 import {
     protect,
@@ -32,6 +33,8 @@ router.post(
     validateSchema(customerValidationSchema),
     signupCustomer
 )
+
+router.post('/otp/verify', verifyCustomerOTPViaEmail)
 router.post('/logout', protect, logout)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)

@@ -68,10 +68,15 @@ const customerSchema = new mongoose.Schema(
             minlength: 8,
             select: false,
         },
+        verified: {
+            type: String,
+            enum: ['false', 'true'],
+            default: false,
+        },
         status: {
             type: String,
             enum: ['active', 'inactive'],
-            default: 'active',
+            default: 'inactive',
         },
         permanentAddress: addressSchema,
         officeShippingAddress: addressSchema,

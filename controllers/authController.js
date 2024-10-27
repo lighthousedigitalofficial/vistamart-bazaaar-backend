@@ -16,6 +16,8 @@ import {
 } from '../utils/helpers.js'
 import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
+import OTP from '../models/users/otpModel.js'
+import * as otpService from './../services/otpService.js'
 
 export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
@@ -39,6 +41,9 @@ export const createSendToken = catchAsync(async (user, statusCode, res) => {
 
     // do not show the password to client side
     user.password = undefined
+    user.verified = undefined
+    user.phoneNumber = undefined
+    user.role = undefined
 
     // Store refresh token in an HTTP-only cookie
     res.cookie('jwt', accessToken, cookieOptions)
@@ -70,8 +75,6 @@ export const login = catchAsync(async (req, res, next) => {
 })
 
 export const signup = catchAsync(async (req, res, next) => {
-    const { filteredData } = checkFields(User, req, next)
-
     const { name, email, password } = filteredData
 
     const newUser = await User.create({
@@ -79,8 +82,6 @@ export const signup = catchAsync(async (req, res, next) => {
         email,
         password,
     })
-
-    console.log(newUser)
 
     // delete pervious cache
     const cacheKey = getCacheKey(User, '', req.query)
@@ -122,10 +123,6 @@ export const loginCustomer = catchAsync(async (req, res, next) => {
 })
 
 export const signupCustomer = catchAsync(async (req, res, next) => {
-    // const data = checkFields(Customer, req, next)
-
-    console.log(req.body)
-
     const { firstName, lastName, email, password } = req.body
 
     const newCustomer = new Customer({
@@ -137,11 +134,61 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
 
     await newCustomer.save()
 
-    // delete pervious cache
+    // 2. Generate OTP and save it in the OTP model
+    const { token, hash } = otpService.generateOTP()
+    await otpService.saveOTP(email, null, hash)
+
+    // 3. Send OTP to email for verification
+    await otpService.sendEmail(email, token)
+
+    // 4. Clear previous cache for customers
     const cacheKey = getCacheKey(Customer, '', req.query)
     await redisClient.del(cacheKey)
 
-    createSendToken(newCustomer, 201, res)
+    // 5. Respond with success message (no auth token until verified)
+    res.status(201).json({
+        status: 'success',
+        message: 'Please verify your account using the OTP sent to your email.',
+    })
+})
+
+export const verifyCustomerOTPViaEmail = catchAsync(async (req, res, next) => {
+    const { token } = req.body
+    const { email } = req.query
+
+    // Fetch the latest OTP for this email
+    const otpEntry = await OTP.findOne({ email }).sort({ createdAt: -1 }).exec()
+
+    if (!otpEntry) {
+        return next(new AppError('No OTP found for this email', 404))
+    }
+
+    // Check if the OTP has expired
+    // 5-minute expiration
+    const isExpired = Date.now() - otpEntry.createdAt > 5 * 60 * 1000
+
+    if (isExpired) {
+        // Cleanup expired OTPs
+        await OTP.deleteMany({ email })
+
+        return next(new AppError('OTP has expired', 400))
+    }
+
+    // Validate OTP hash
+    const isValid = await otpService.validateOTP(token, otpEntry.hash)
+
+    if (!isValid) return next(new AppError('Invalid OTP provided', 400))
+
+    // OTP is valid; proceed with deletion and user verification
+    await OTP.deleteMany({ email }) // Delete OTP after use
+    const customer = await Customer.findOneAndUpdate(
+        { email },
+        { verified: true, status: 'active' },
+        { new: true }
+    ).exec()
+
+    // OTP is valid, respond with success
+    createSendToken(customer, 201, res)
 })
 
 export const loginVendor = catchAsync(async (req, res, next) => {
