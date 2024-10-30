@@ -199,12 +199,12 @@ export const getOrderById = catchAsync(async (req, res, next) => {
     }, {})
 
     // Map the products array to their corresponding product documents
-    const orderProducts = order.products.map(
+    const orderProducts = order?.products?.map(
         (productId) => productsMap[productId] || null
     )
 
     // Map the vendors array to their corresponding vendor documents
-    const orderVendors = order.vendors.map(
+    const orderVendors = order?.vendors?.map(
         (vendorId) => vendorsMap[vendorId] || null
     )
 
