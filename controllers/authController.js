@@ -145,7 +145,7 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey(Customer, '', req.query)
     await redisClient.del(cacheKey)
 
-    // 5. Respond with success message (no auth token until verified)
+    // 5. Respond with success message
     res.status(201).json({
         status: 'success',
         message: 'Please verify your account using the OTP sent to your email.',
@@ -153,8 +153,7 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
 })
 
 export const verifyCustomerOTPViaEmail = catchAsync(async (req, res, next) => {
-    const { token } = req.body
-    const { email } = req.query
+    const { token, email } = req.body
 
     // Fetch the latest OTP for this email
     const otpEntry = await OTP.findOne({ email }).sort({ createdAt: -1 }).exec()
@@ -180,15 +179,18 @@ export const verifyCustomerOTPViaEmail = catchAsync(async (req, res, next) => {
     if (!isValid) return next(new AppError('Invalid OTP provided', 400))
 
     // OTP is valid; proceed with deletion and user verification
-    await OTP.deleteMany({ email }) // Delete OTP after use
-    const customer = await Customer.findOneAndUpdate(
+    await OTP.deleteMany({ email })
+
+    await Customer.findOneAndUpdate(
         { email },
         { verified: true, status: 'active' },
         { new: true }
     ).exec()
 
-    // OTP is valid, respond with success
-    createSendToken(customer, 201, res)
+    res.status(200).json({
+        status: 'success',
+        message: 'OTP verified successfully.',
+    })
 })
 
 export const loginVendor = catchAsync(async (req, res, next) => {
@@ -207,7 +209,10 @@ export const loginVendor = catchAsync(async (req, res, next) => {
     }
 
     // 3) If everything is Ok, then send the response to client
-    createSendToken(seller, 200, res)
+    res.status(201).json({
+        status: 'success',
+        message: 'OTP sent.',
+    })
 })
 
 export const sellerSignup = catchAsync(async (req, res, next) => {

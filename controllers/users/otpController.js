@@ -53,5 +53,8 @@ export const verifyOneTimePassword = catchAsync(async (req, res, next) => {
     if (!isValid) return next(new AppError('Invalid OTP provided', 400))
 
     // OTP is valid, respond with success
-    res.status(200).json({ message: 'OTP verified successfully.' })
+    res.status(200).json({
+        status: 'success',
+        message: 'OTP verified successfully.',
+    })
 })
