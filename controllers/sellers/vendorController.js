@@ -17,17 +17,12 @@ export const createVendor = catchAsync(async (req, res, next) => {
         phoneNumber,
         email,
         password,
-        confirmPassword,
         shopName,
         address,
         vendorImage,
         logo,
         banner,
     } = req.body
-
-    if (password !== confirmPassword) {
-        return next(new AppError(`Password do not match!`, 400))
-    }
 
     const newVendor = new Vendor({
         firstName,
