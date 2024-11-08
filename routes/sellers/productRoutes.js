@@ -22,12 +22,7 @@ router.route('/').post(protect, createProduct).get(getAllProducts)
 // Static routes
 router.route('/:productId/sold').get(sellProduct)
 
-router.put(
-    '/:productId/update-product-image',
-    protect,
-
-    updateProductImages
-)
+router.put('/:productId/update-product-image', protect, updateProductImages)
 
 router
     .route('/:id')

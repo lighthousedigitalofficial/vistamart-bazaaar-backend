@@ -20,11 +20,6 @@ router
     .put(protect, updateBanner)
     .delete(protect, deleteBanner)
 
-router.put(
-    '/publish/:id',
-    protect,
-
-    updateBannerPublishStatus
-)
+router.put('/publish/:id', protect, updateBannerPublishStatus)
 
 export default router

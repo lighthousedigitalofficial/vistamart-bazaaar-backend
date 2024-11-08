@@ -77,7 +77,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         updatedDiscountAmount = (price * discount) / 100
     }
 
-    const newProduct = new Product({
+    let productData = {
         name,
         description,
         category,
@@ -85,7 +85,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
         subSubCategory,
         brand,
         productType,
-        digitalProductType,
         sku,
         unit,
         tags,
@@ -108,7 +107,16 @@ export const createProduct = catchAsync(async (req, res, next) => {
         metaTitle,
         metaDescription,
         slug: slugify(name, { lower: true }),
-    })
+    }
+
+    if (productType === 'digital') {
+        productData = {
+            ...productData,
+            digitalProductType,
+        }
+    }
+
+    const newProduct = new Product(productData)
 
     await newProduct.save()
 
