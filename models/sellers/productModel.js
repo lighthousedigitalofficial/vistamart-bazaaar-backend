@@ -48,6 +48,7 @@ const productSchema = new mongoose.Schema(
         digitalProductType: {
             type: String,
             enum: ['readyAfterSell', 'readyProduct'],
+            default: 'readyAfterSell',
         },
         sku: {
             type: String,
