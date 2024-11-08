@@ -14,6 +14,7 @@ import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import Employee from '../../models/admin/employeeModel.js'
 import { deleteKeysByPattern } from '../../services/redisService.js'
+import APIFeatures from '../../utils/apiFeatures.js'
 
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
@@ -158,6 +159,84 @@ export const updateProductImages = catchAsync(async (req, res) => {
     })
 })
 
+// export const getAllProducts = catchAsync(async (req, res, next) => {
+//     const cacheKey = getCacheKey('Product', '', req.query)
+
+//     // Check cache first
+//     const cachedDoc = await redisClient.get(cacheKey)
+//     if (cachedDoc) {
+//         return res.status(200).json({
+//             status: 'success',
+//             cached: true,
+//             results: JSON.parse(cachedDoc).length,
+//             doc: JSON.parse(cachedDoc),
+//         })
+//     }
+
+//     // Base query for products
+//     let query = Product.find()
+
+//     // Check if any query parameter for sorting, filtering, limiting, or pagination is present
+//     const { sort, limit, page, ...filters } = req.query
+//     const hasQueryOptions =
+//         sort || limit || page || Object.keys(filters).length > 0
+
+//     // Apply query options if present
+//     let products
+//     if (hasQueryOptions) {
+//         const features = new APIFeatures(query, req.query)
+//             .filter()
+//             .sort()
+//             .fieldsLimit()
+//             .paginate()
+
+//         products = await features.query.lean()
+//     } else {
+//         products = await Product.find().lean()
+//     }
+
+//     // Get unique IDs for related data
+//     const categoryIds = [
+//         ...new Set(products.map((p) => p.category).filter(Boolean)),
+//     ]
+//     const brandIds = [...new Set(products.map((p) => p.brand).filter(Boolean))]
+
+//     // Fetch related data from separate databases
+//     const [categories, brands] = await Promise.all([
+//         Category.find({ _id: { $in: categoryIds } })
+//             .select('name logo')
+//             .lean(),
+//         Brand.find({ _id: { $in: brandIds } })
+//             .select('name logo')
+//             .lean(),
+//     ])
+
+//     // Convert to maps for faster lookups
+//     const categoryMap = Object.fromEntries(
+//         categories.map((cat) => [cat._id.toString(), cat])
+//     )
+//     const brandMap = Object.fromEntries(
+//         brands.map((brand) => [brand._id.toString(), brand])
+//     )
+
+//     // Enrich products with related data
+//     const enrichedProducts = products.map((product) => ({
+//         ...product,
+//         category: categoryMap[product.category?.toString()] || null,
+//         brand: brandMap[product.brand?.toString()] || null,
+//     }))
+
+//     // Cache the result
+//     await redisClient.setEx(cacheKey, 3600, JSON.stringify(enrichedProducts))
+
+//     res.status(200).json({
+//         status: 'success',
+//         cached: false,
+//         results: enrichedProducts.length,
+//         doc: enrichedProducts,
+//     })
+// })
+
 export const getAllProducts = getAll(Product)
 
 export const getProductById = catchAsync(async (req, res, next) => {
@@ -277,8 +356,6 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         doc: product,
     })
 })
-
-const relatedModels = [{ model: Wishlist, foreignKey: 'products' }]
 
 // Delete a Product
 export const deleteProduct = deleteOne(Product)

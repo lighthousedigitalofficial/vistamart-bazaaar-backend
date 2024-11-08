@@ -19,11 +19,6 @@ router
     .put(protect, updateCoupon)
     .delete(protect, deleteCoupon)
 
-router.put(
-    '/status/:id',
-    protect,
-
-    updateCouponStatus
-)
+router.put('/status/:id', protect, updateCouponStatus)
 
 export default router
