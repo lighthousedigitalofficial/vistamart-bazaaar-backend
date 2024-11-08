@@ -37,17 +37,12 @@ const vendorBankSchema = new mongoose.Schema(
     }
 )
 
-vendorBankSchema.post('save', async function (next) {
-    try {
-        await checkReferenceId(
-            sellerDbConnection.model('Vendor'),
-            this.vendor,
-            next
-        )
-        next()
-    } catch (err) {
-        next(err)
-    }
+// Pre-save hook to check if the vendor exists before saving
+vendorBankSchema.pre('save', async function (next) {
+    await checkReferenceId(Vendor, this.vendor, next)
+
+    next()
 })
 
-export default sellerDbConnection.model('VendorBank', sellerBankSchema)
+// Export the model
+export default sellerDbConnection.model('VendorBank', vendorBankSchema)

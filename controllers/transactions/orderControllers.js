@@ -1,16 +1,23 @@
-import redisClient from '../config/redisConfig.js'
-import Coupon from '../models/couponModel.js'
-import Order from '../models/orderModel.js'
-import Refund from '../models/refundModel.js'
-import AppError from '../utils/appError.js'
-import catchAsync from '../utils/catchAsync.js'
-import { getCacheKey } from '../utils/helpers.js'
+import { v4 as uuidv4 } from 'uuid'
+
+import catchAsync from '../../utils/catchAsync.js'
+import redisClient from '../../config/redisConfig.js'
+import APIFeatures from '../../utils/apiFeatures.js'
+import { getCacheKey } from '../../utils/helpers.js'
+
+import Product from '../../models/sellers/productModel.js'
+import Vendor from '../../models/sellers/vendorModel.js'
+import Customer from '../../models/users/customerModel.js'
+import Coupon from '../../models/sellers/couponModel.js'
+import Order from '../../models/transactions/orderModel.js'
+import AppError from '../../utils/appError.js'
+import Refund from '../../models/transactions/refundModel.js'
+
 import {
     deleteOneWithTransaction,
-    getAll,
     getOne,
     updateStatus,
-} from './handleFactory.js'
+} from '../../factory/handleFactory.js'
 
 const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     // Find the coupon by ID
@@ -30,6 +37,17 @@ const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     await coupon.save({ validateBeforeSave: true })
 })
 
+function generateOrderId() {
+    // Generate a UUID
+    const uuid = uuidv4()
+
+    // Convert it into a number by taking the first 6 characters of its hash
+    const orderId = parseInt(uuid.replace(/-/g, '').slice(0, 6), 16)
+
+    // Ensure it's exactly 6 digits by padding or trimming
+    return orderId.toString().padStart(6, '0').slice(0, 6)
+}
+
 // Create a new order
 export const createOrder = catchAsync(async (req, res, next) => {
     const {
@@ -41,18 +59,13 @@ export const createOrder = catchAsync(async (req, res, next) => {
         paymentMethod,
         shippingAddress,
         billingAddress,
+        paymentStatus,
         orderNote,
     } = req.body
 
     if (couponId) {
         updateCouponUserLimit(couponId, next)
     }
-
-    function generateOrderId() {
-        // Generates a random number between 1000 and 9999
-        return Math.floor(1000 + Math.random() * 9000)
-    }
-
     const newOrder = {
         orderId: generateOrderId(),
         coupon: couponId ? couponId : undefined,
@@ -63,6 +76,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
         paymentMethod,
         shippingAddress,
         billingAddress,
+        paymentStatus,
         orderNote,
     }
 
@@ -85,7 +99,67 @@ export const createOrder = catchAsync(async (req, res, next) => {
     })
 })
 
-export const getAllOrders = getAll(Order)
+// export const getAllOrders = getAll(Order)
+
+// Get all orders
+export const getAllOrders = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('Order', '', req.query)
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            results: JSON.parse(cachedDoc).length,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    let query = Order.find().lean()
+    const features = new APIFeatures(query, req.query)
+        .filter()
+        .sort()
+        .fieldsLimit()
+        .paginate()
+
+    const orders = await features.query
+    if (!orders || orders.length === 0) {
+        return next(new AppError('No orders found', 404))
+    }
+
+    // Batch fetching all products, vendors, and customers
+    const productIds = orders.flatMap((order) =>
+        order.products.map((p) => p.product)
+    )
+    const vendorIds = orders.map((order) => order.vendor)
+    const customerIds = orders.map((order) => order.customer)
+
+    const [products, vendors, customers] = await Promise.all([
+        Product.find({ _id: { $in: productIds } }).lean(),
+        Vendor.find({ _id: { $in: vendorIds } }).lean(),
+        Customer.find({ _id: { $in: customerIds } }).lean(),
+    ])
+
+    const totalOrders = orders.map((order) => ({
+        ...order,
+        products: order.products.map((p) => ({
+            ...p,
+            product: products.find((prod) => prod._id.equals(p.product)),
+        })),
+        vendor: vendors.find((v) => v._id.equals(order.vendor)),
+        customer: customers.find((c) => c._id.equals(order.customer)),
+    }))
+
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(totalOrders))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        results: totalOrders.length,
+        doc: totalOrders,
+    })
+})
+
 // Delete an order
 
 const relatedModels = [{ model: Refund, foreignKey: 'order' }]
@@ -93,10 +167,164 @@ const relatedModels = [{ model: Refund, foreignKey: 'order' }]
 export const deleteOrder = deleteOneWithTransaction(Order, relatedModels)
 
 // Get order by ID
-export const getOrderById = getOne(Order)
+export const getOrderById = catchAsync(async (req, res, next) => {
+    const { id } = req.params
+
+    // Fetch the order by ID
+    const order = await Order.findById(id).lean()
+
+    if (!order) {
+        return next(new AppError('No order found with that ID', 404))
+    }
+
+    // Fetch related data from the respective models
+    const products = await Product.find({ _id: { $in: order.products } }).lean()
+    const vendors = await Vendor.find({ _id: { $in: order.vendors } }).lean()
+    const customer = await Customer.findById(order.customer).lean()
+
+    // Map products and vendors by their IDs for efficient lookup
+    const productsMap = products.reduce((map, product) => {
+        map[product._id] = product
+        return map
+    }, {})
+
+    const vendorsMap = vendors.reduce((map, vendor) => {
+        map[vendor._id] = vendor
+        return map
+    }, {})
+
+    // Map the products array to their corresponding product documents
+    const orderProducts = order.products.map(
+        (productId) => productsMap[productId] || null
+    )
+
+    // Map the vendors array to their corresponding vendor documents
+    const orderVendors = order.vendors.map(
+        (vendorId) => vendorsMap[vendorId] || null
+    )
+
+    // Add full details of customer, products, and vendors to the order
+    const orderDetails = {
+        ...order, // Spread the existing order fields
+        customer, // Add the customer object
+        products: orderProducts, // Add the full product objects
+        vendors: orderVendors, // Add the full vendor objects
+    }
+
+    res.status(200).json({
+        status: 'success',
+        doc: orderDetails,
+    })
+})
+
+export const getCustomerOrderById = catchAsync(async (req, res, next) => {
+    const { id } = req.params
+
+    // Fetch the order by ID
+    const order = await Order.findOne({ customer: id }).lean()
+
+    if (!order) {
+        return next(new AppError('No order found with that customer ID', 404))
+    }
+
+    // Fetch related data from the respective models
+    const products = await Product.find({ _id: { $in: order.products } }).lean()
+    const vendors = await Vendor.find({ _id: { $in: order.vendors } }).lean()
+    const customer = await Customer.findById(id).lean()
+
+    // Map products and vendors by their IDs for efficient lookup
+    const productsMap = products.reduce((map, product) => {
+        map[product._id] = product
+        return map
+    }, {})
+
+    const vendorsMap = vendors.reduce((map, vendor) => {
+        map[vendor._id] = vendor
+        return map
+    }, {})
+
+    // Map the products array to their corresponding product documents
+    const orderProducts = order.products.map(
+        (productId) => productsMap[productId] || null
+    )
+
+    // Map the vendors array to their corresponding vendor documents
+    const orderVendors = order.vendors.map(
+        (vendorId) => vendorsMap[vendorId] || null
+    )
+
+    // Add full details of customer, products, and vendors to the order
+    const customerOrders = {
+        ...order, // Spread the existing order fields
+        customer, // Add the customer object
+        products: orderProducts, // Add the full product objects
+        vendors: orderVendors, // Add the full vendor objects
+    }
+
+    res.status(200).json({
+        status: 'success',
+        doc: customerOrders,
+    })
+})
 
 // Update an order's status
-export const updateOrderStatus = updateStatus(Order)
+export const updateOrderStatus = catchAsync(async (req, res, next) => {
+    if (!req.body.status) {
+        return next(new AppError(`Please provide status value.`, 400))
+    }
+
+    // Perform the update operation
+    const doc = await Order.findByIdAndUpdate(
+        req.params.id,
+        { status: req.body.status },
+        {
+            new: true,
+            runValidators: true,
+        }
+    )
+
+    // Handle case where the document was not found
+    if (!doc) {
+        return next(new AppError(`No Order found with that ID`, 404))
+    }
+
+    // If the order status is 'delivered', increment the product sell count
+    for (const item of doc?.products) {
+        const { product, quantity } = item
+
+        // Update sold count by the quantity sold and reduce the stock by the same quantity
+        await Product.findByIdAndUpdate(
+            product,
+            {
+                $inc: {
+                    sold: quantity, // Increment the sold count by the quantity sold
+                    stock: -quantity, // Decrement the stock by the quantity sold
+                },
+            },
+            { new: true }
+        )
+
+        const cacheProductKey = getCacheKey('Product', product)
+        await redisClient.del(cacheProductKey)
+    }
+
+    const cacheProduct = getCacheKey('Product')
+    await redisClient.del(cacheProduct)
+
+    // Handle Redis cache
+    const cacheKeyOne = getCacheKey('Order', req.params.id)
+    await redisClient.del(cacheKeyOne)
+    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
+
+    // Update list cache
+    const cacheKey = getCacheKey('Order', '', req.query)
+    await redisClient.del(cacheKey)
+
+    res.status(200).json({
+        status: 'success',
+        doc,
+    })
+})
 
 export const getOrderByCustomer = catchAsync(async (req, res, next) => {
     const customerId = req.params.customerId

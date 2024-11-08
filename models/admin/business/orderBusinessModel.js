@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { adminDbConnection } from "../../../config/dbConnections.js";
 
-const orderSchema = new mongoose.Schema(
+const orderBusinessSchema = new mongoose.Schema(
   {
     orderDeliveryVerification: {
       type: String,
@@ -67,6 +67,11 @@ const orderSchema = new mongoose.Schema(
         "Please specify if guest checkout is active or inactive",
       ],
     },
+    shippingMethod:{
+      type: String,
+      enum:["Leopards","Track"],
+      required: true
+    },
   },
   {
     timestamps: true,
@@ -74,6 +79,9 @@ const orderSchema = new mongoose.Schema(
 );
 
 // Create the model using adminDbConnection
-const Order = adminDbConnection.model("Order", orderSchema);
+const OrderBusiness = adminDbConnection.model(
+  "OrderBusiness",
+  orderBusinessSchema
+);
 
-export default Order;
+export default OrderBusiness;

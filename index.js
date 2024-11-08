@@ -1,4 +1,3 @@
-import config from './config/index.js'
 // import connectDB from './config/dbConnections.js'
 import cron from 'node-cron'
 
@@ -6,10 +5,10 @@ import cron from 'node-cron'
 
 import app from './app.js'
 import FeaturedDeal from './models/admin/deals/featuredDealModel.js'
-
+import keys from './config/keys.js'
 // connectDB()
 
-const port = config.port || 3000
+const port = keys.port || 3000
 
 // Schedule the task here
 cron.schedule('0 0 * * *', async () => {

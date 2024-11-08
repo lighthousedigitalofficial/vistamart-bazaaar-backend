@@ -68,10 +68,15 @@ const customerSchema = new mongoose.Schema(
             minlength: 8,
             select: false,
         },
+        verified: {
+            type: String,
+            enum: ['false', 'true'],
+            default: false,
+        },
         status: {
             type: String,
             enum: ['active', 'inactive'],
-            default: 'active',
+            default: 'inactive',
         },
         permanentAddress: addressSchema,
         officeShippingAddress: addressSchema,
@@ -136,13 +141,6 @@ customerSchema.pre('save', function (next) {
     this.passwordChangedAt = Date.now() - 1000
 
     next()
-})
-
-// if customer deleted, also Delete all the related reveiws to the customer
-customerSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await userDbConnection.model('Review').deleteMany({ customer: doc._id })
-    }
 })
 
 const Customer = userDbConnection.model('Customer', customerSchema)

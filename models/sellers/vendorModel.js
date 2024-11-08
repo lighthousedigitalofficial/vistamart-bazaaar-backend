@@ -1,8 +1,12 @@
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import validator from 'validator'
+import slugify from 'slugify'
+import Product from './productModel.js'
+import Order from './../transactions/orderModel.js'
+import { sellerDbConnection } from '../../config/dbConnections.js'
 
-const sellerSchema = new mongoose.Schema(
+const vendorSchema = new mongoose.Schema(
     {
         firstName: {
             type: String,
@@ -64,6 +68,10 @@ const sellerSchema = new mongoose.Schema(
             type: String,
             default: 'vendor',
         },
+        slug: {
+            type: String,
+            unique: true,
+        },
     },
     {
         toJSON: { virtuals: true },
@@ -72,38 +80,37 @@ const sellerSchema = new mongoose.Schema(
     }
 )
 
-sellerSchema.virtual('totalProducts', {
-    ref: 'Product',
-    localField: '_id',
-    foreignField: 'userId',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
-})
-
-sellerSchema.virtual('totalOrders', {
-    ref: 'Order',
-    localField: '_id',
-    foreignField: 'vendors',
-    // This tells mongoose to return a count instead of the documents
-    count: true,
-})
-
-// sellerSchema.virtual('bank', {
-//     ref: 'VendorBank',
+// vendorSchema.virtual('totalOrders', {
+//     ref: Order,
 //     localField: '_id',
-//     foreignField: 'vendor',
-//     justOne: true,
-//     options: { select: 'holderName accountNumber bankName branch vendor ' },
+//     foreignField: 'products',
+//     count: true,
+//     strictPopulate: false,
 // })
 
-sellerSchema.methods.correctPassword = async function (
+vendorSchema.virtual('products', {
+    ref: Product,
+    localField: '_id',
+    foreignField: 'userId',
+    strictPopulate: false,
+})
+
+vendorSchema.virtual('bank', {
+    ref: 'VendorBank',
+    localField: '_id',
+    foreignField: 'vendor',
+    justOne: true,
+    options: { select: 'holderName accountNumber bankName branch vendor ' },
+})
+
+vendorSchema.methods.correctPassword = async function (
     candidatePassword,
     userPassword
 ) {
     return await bcrypt.compare(candidatePassword, userPassword)
 }
 
-sellerSchema.methods.changePasswordAfter = function (JWTTimestamp) {
+vendorSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     if (this.passwordChangedAt) {
         const changeTimestamp = parseInt(
             this.passwordChangedAt.getTime() / 1000,
@@ -116,7 +123,7 @@ sellerSchema.methods.changePasswordAfter = function (JWTTimestamp) {
     return false
 }
 
-sellerSchema.methods.createPasswordResetToken = function () {
+vendorSchema.methods.createPasswordResetToken = function () {
     const resetToken = crypto.randomBytes(32).toString('hex')
 
     this.passwordResetToken = crypto
@@ -129,7 +136,7 @@ sellerSchema.methods.createPasswordResetToken = function () {
     return resetToken
 }
 
-sellerSchema.pre('save', async function (next) {
+vendorSchema.pre('save', async function (next) {
     // Only work when the password is not modified
     if (!this.isModified('password')) return next()
 
@@ -139,16 +146,13 @@ sellerSchema.pre('save', async function (next) {
     next()
 })
 
-sellerSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Product').deleteMany({ userId: doc._id })
-    }
+vendorSchema.pre('save', function (next) {
+    if (!this.isModified('shopName')) return next()
 
-    if (doc) {
-        await mongoose.model('VendorBank').deleteMany({ vendor: doc._id })
-    }
+    this.slug = slugify(this.shopName, { lower: true, strict: true })
+    next()
 })
 
-const Vendor = mongoose.model('Vendor', sellerSchema)
+const Vendor = sellerDbConnection.model('Vendor', vendorSchema)
 
 export default Vendor

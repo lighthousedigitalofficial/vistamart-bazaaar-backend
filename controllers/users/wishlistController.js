@@ -1,13 +1,13 @@
-import Wishlist from '../models/wishlistModel.js'
-import Product from '../models/productModel.js'
-import Customer from '../models/customerModel.js'
+import Wishlist from '../../models/users/wishlistModel.js'
+import Product from '../../models/sellers/productModel.js'
+import Customer from '../../models/users/customerModel.js'
 
-import { getAll } from './handleFactory.js'
-import catchAsync from '../utils/catchAsync.js'
-import AppError from '../utils/appError.js'
+import catchAsync from '../../utils/catchAsync.js'
+import { getCacheKey } from '../../utils/helpers.js'
+import redisClient from '../../config/redisConfig.js'
 
-import { getCacheKey } from '../utils/helpers.js'
-import redisClient from '../config/redisConfig.js'
+import { getAll } from './../../factory/handleFactory.js'
+import AppError from '../../utils/appError.js'
 
 export const getAllWishlists = getAll(Wishlist)
 
@@ -54,12 +54,21 @@ export const getWishlist = catchAsync(async (req, res, next) => {
     }
 
     // If not in cache, fetch from database
-    const doc = await Wishlist.findOne({ customer: customerId })
+    let doc = await Wishlist.findOne({ customer: customerId }).lean()
 
     if (!doc) {
         return next(
             new AppError(`No wishlist found with that customer ID.`, 404)
         )
+    }
+
+    let products = await Product.find({
+        _id: { $in: doc.products },
+    }).lean()
+
+    doc = {
+        ...doc,
+        products,
     }
 
     // Cache the result

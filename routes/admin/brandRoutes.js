@@ -8,20 +8,20 @@ import {
     deleteBrand,
     updateBrandStatus,
     getBrandBySlug,
-} from '../controllers/brandController.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
+} from './../../controllers/admin/brandController.js'
+import { protect, restrictTo } from './../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-router.route('/').post(createBrand).get(getBrands)
+router.route('/').post(protect, createBrand).get(getBrands)
 
 router
     .route('/:id')
     .get(getBrandById)
-    .put(protect, restrictTo('admin'), updateBrand)
-    .delete(protect, restrictTo('admin'), deleteBrand)
+    .put(protect, updateBrand)
+    .delete(protect, deleteBrand)
 
-router.route('/:id/status').put(protect, restrictTo('admin'), updateBrandStatus)
+router.route('/status/:id').put(protect, updateBrandStatus)
 
 router.get('/slug/:slug', getBrandBySlug)
 

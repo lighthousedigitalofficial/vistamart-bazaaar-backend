@@ -5,16 +5,21 @@ import {
     getAttributeById,
     updateAttribute,
     deleteAttribute,
-} from '../controllers/attributeController.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import attributeValidationSchema from './../validations/attributeValidator.js'
-import { protect } from '../middleware/authMiddleware.js'
+} from '../../controllers/admin/attributeController.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import attributeValidationSchema from './../../validations/attributeValidator.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
 router
     .route('/')
-    .post(protect, validateSchema(attributeValidationSchema), createAttribute)
+    .post(
+        protect,
+
+        validateSchema(attributeValidationSchema),
+        createAttribute
+    )
     .get(getAttributes)
 router
     .route('/:id')

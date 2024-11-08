@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import { checkReferenceId } from '../../../utils/helpers.js'
 import { adminDbConnection } from '../../../config/dbConnections.js'
+import Category from './categoryModel.js'
 
 const subCategorySchema = new mongoose.Schema(
     {
@@ -36,14 +37,10 @@ subCategorySchema.pre(/^find/, function (next) {
 })
 
 subCategorySchema.pre('save', async function (next) {
-    checkReferenceId(
-        adminDbConnection.model('Category'),
-        this.mainCategory,
-        next
-    )
+    await checkReferenceId(Category, this.mainCategory, next)
     next()
 })
 
-const SubCategory = mongoose.model('SubCategory', subCategorySchema)
+const SubCategory = adminDbConnection.model('SubCategory', subCategorySchema)
 
 export default SubCategory

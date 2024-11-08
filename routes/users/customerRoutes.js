@@ -14,6 +14,7 @@ import {
     updatePassword,
     forgotPassword,
     resetPassword,
+    verifyCustomerOTPViaEmail,
 } from '../../controllers/authController.js'
 import {
     protect,
@@ -32,6 +33,8 @@ router.post(
     validateSchema(customerValidationSchema),
     signupCustomer
 )
+
+router.post('/otp/verify', verifyCustomerOTPViaEmail)
 router.post('/logout', protect, logout)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)
@@ -41,18 +44,24 @@ router.put('/reset-password/:token', resetPassword)
 router
     .route('/')
     .post(
-        // protect,
-        // restrictTo('admin'),
+        protect,
+
         validateSchema(customerValidationSchema),
         createCustomer
     )
-    .get(
-        // protect, restrictTo('admin', 'vendor'),
-        getCustomers
-    )
+    .get(protect, getCustomers)
 
-router.put('/status/:id', protect, restrictTo('admin'), updateCustomerStatus)
+router.put(
+    '/status/:id',
+    protect,
 
-router.route('/:id').get(getCustomer).put(updateCustomer).delete(deleteCustomer)
+    updateCustomerStatus
+)
+
+router
+    .route('/:id')
+    .get(getCustomer)
+    .put(protect, updateCustomer)
+    .delete(protect, restrictTo('user-management'), deleteCustomer)
 
 export default router

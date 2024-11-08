@@ -1,7 +1,10 @@
 import mongoose from 'mongoose'
 import AppError from '../../utils/appError.js'
 import { adminDbConnection } from '../../config/dbConnections.js'
+import Vendor from './vendorModel.js'
+import Customer from '../users/customerModel.js'
 
+// Define the coupon schema
 const couponSchema = new mongoose.Schema(
     {
         title: {
@@ -28,13 +31,13 @@ const couponSchema = new mongoose.Schema(
         userLimit: {
             limit: {
                 type: Number,
-                required: [true, 'Limit is required.'],
-                min: [0, 'Limit cannot be negative.'],
+                // required: [true, "Please provide a limit for user."],
+                min: [1, 'Limit must be at least 1.'],
             },
             used: {
                 type: Number,
                 default: 0,
-                min: [0, 'Used count cannot be negative.'],
+                min: [0, 'Used count cannot be less than 0.'],
             },
         },
         couponBearer: {
@@ -54,7 +57,7 @@ const couponSchema = new mongoose.Schema(
         },
         minPurchase: {
             type: Number,
-            required: [true, 'Minimum Purchase is required.'],
+            required: [true, 'Please provide minimum purchase amount.'],
             min: [0, 'Minimum Purchase cannot be negative.'],
         },
         maxDiscount: {
@@ -78,37 +81,45 @@ const couponSchema = new mongoose.Schema(
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Vendor',
+                required: true, // Ensures a vendor is required
             },
         ],
         customers: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Customer',
+                required: true,
             },
         ],
+        createdBy: {
+            type: String,
+            required: true,
+        },
     },
     {
         timestamps: true,
     }
 )
 
-couponSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'vendors',
-        select: 'shopName',
-    }).populate({
-        path: 'customers',
-        select: 'firstName lastName',
-    })
+// Pre-find hook for populating vendors and customers
+// couponSchema.pre(/^find/, function (next) {
+//   this.populate({
+//     path: "vendors",
+//     select: "shopName", // Select fields to return
+//   }).populate({
+//     path: "customers",
+//     select: "firstName lastName", // Select fields to return
+//   });
 
-    next()
-})
+//   next();
+// });
 
+// Pre-save hook for checking vendor and customer existence
 couponSchema.pre('save', async function (next) {
     try {
-        // Check if vendors are provided and validate them
+        // Validate vendor references
         if (this.vendors && this.vendors.length > 0) {
-            const vendorCheck = await mongoose.model('Vendor').countDocuments({
+            const vendorCheck = await Vendor.countDocuments({
                 _id: { $in: this.vendors },
             })
 
@@ -118,13 +129,12 @@ couponSchema.pre('save', async function (next) {
                 )
             }
         }
-        // Check if customers are provided and validate them
+
+        // Validate customer references
         if (this.customers && this.customers.length > 0) {
-            const customerCheck = await mongoose
-                .model('Customer')
-                .countDocuments({
-                    _id: { $in: this.customers },
-                })
+            const customerCheck = await Customer.countDocuments({
+                _id: { $in: this.customers },
+            })
 
             if (customerCheck !== this.customers.length) {
                 return next(
@@ -139,6 +149,6 @@ couponSchema.pre('save', async function (next) {
     }
 })
 
+// Create and export the Coupon model
 const Coupon = adminDbConnection.model('Coupon', couponSchema)
-
 export default Coupon

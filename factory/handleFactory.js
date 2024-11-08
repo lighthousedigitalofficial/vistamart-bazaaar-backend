@@ -5,31 +5,35 @@ import AppError from '../utils/appError.js'
 import catchAsync from '../utils/catchAsync.js'
 import { getCacheKey } from '../utils/helpers.js'
 import mongoose from 'mongoose'
+import { deleteKeysByPattern } from '../services/redisService.js'
 
 // Check Document fields if they exisit it return data body
 // And if not it return Error
 export const checkFields = (Model, req, next) => {
-    // Step 1: Get the allowed fields from the model schema
     const allowedFields = Object.keys(Model.schema.paths)
-
-    // Step 2: Identify fields in req.body that are not in the allowedFields list
     const extraFields = Object.keys(req.body).filter(
         (field) => !allowedFields.includes(field)
     )
 
-    // Step 3: If extra fields are found, send an error response
-    if (extraFields.length > 0) {
+    // Add custom handling for allowed fields
+    const customAllowedFields = ['userLimit']
+
+    // Check if extra fields are allowed
+    const invalidFields = extraFields.filter(
+        (field) => !customAllowedFields.includes(field)
+    )
+
+    if (invalidFields.length > 0) {
         return next(
             new AppError(
-                `These fields are not allowed: ${extraFields.join(', ')}`,
+                `These fields are not allowed: ${invalidFields.join(', ')}`,
                 400
             )
         )
     }
 
-    // Step 4: Proceed with filtering the valid fields
     const filteredData = Object.keys(req.body).reduce((obj, key) => {
-        if (allowedFields.includes(key)) {
+        if (allowedFields.includes(key) || customAllowedFields.includes(key)) {
             obj[key] = req.body[key]
         }
         return obj
@@ -50,13 +54,8 @@ export const deleteOne = (Model) =>
             return next(new AppError(`No ${docName} found with that ID`, 404))
         }
 
-        // get single document store in cache
-        const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
-        await redisClient.del(cacheKeyOne)
-
-        // delete document caches
-        const cacheKey = getCacheKey(Model.modelName, '', req.query)
-        await redisClient.del(cacheKey)
+        // delete all document caches related to this model
+        await deleteKeysByPattern(Model.modelName)
 
         res.status(204).json({
             status: 'success',
@@ -83,23 +82,22 @@ export const updateOne = (Model) =>
             runValidators: true,
         })
 
-        const docName = Model.modelName.toLowerCase() || 'Document'
+        const docName = Model?.modelName?.toLowerCase() || 'Document'
 
         // Handle case where the document was not found
         if (!doc) {
             return next(new AppError(`No ${docName} found with that ID`, 404))
         }
 
-        const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
+        const cacheKeyOne = getCacheKey(Model.modelName, filteredData.slug)
 
         // delete pervious document data
         await redisClient.del(cacheKeyOne)
         // updated the cache with new data
         await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
 
-        // Update cache
-        const cacheKey = getCacheKey(Model.modelName, '', req.query)
-        await redisClient.del(cacheKey)
+        // delete all document caches related to this model
+        await deleteKeysByPattern(Model.modelName)
 
         res.status(200).json({
             status: 'success',
@@ -120,8 +118,6 @@ export const createOne = (Model) =>
             }
         }
 
-        console.log({ Model, filteredData })
-
         const doc = await Model.create(filteredData)
 
         const docName = Model.modelName || 'Document'
@@ -141,9 +137,8 @@ export const createOne = (Model) =>
         const cacheKeyOne = getCacheKey(Model.modelName, doc?._id)
         await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
 
-        // delete all documents caches related to this model
-        const cacheKey = getCacheKey(Model.modelName, '', req.query)
-        await redisClient.del(cacheKey)
+        // delete all document caches related to this model
+        await deleteKeysByPattern(Model.modelName)
 
         res.status(201).json({
             status: 'success',
@@ -189,27 +184,25 @@ export const getOne = (Model, popOptions) =>
         })
     })
 
-// GET All Documents
 export const getAll = (Model, popOptions) =>
     catchAsync(async (req, res, next) => {
         const cacheKey = getCacheKey(Model.modelName, '', req.query)
 
         // Check cache first
-        const cacheddoc = await redisClient.get(cacheKey)
-
-        if (cacheddoc !== null) {
+        const cachedDoc = await redisClient.get(cacheKey)
+        if (cachedDoc) {
             return res.status(200).json({
                 status: 'success',
                 cached: true,
-                results: JSON.parse(cacheddoc).length,
-                doc: JSON.parse(cacheddoc),
+                results: JSON.parse(cachedDoc).length,
+                doc: JSON.parse(cachedDoc),
             })
         }
 
-        // EXECUTE QUERY
+        // Base query
         let query = Model.find()
 
-        // If popOptions is provided and path is an array or a string, populate the query
+        // Conditionally apply population
         if (popOptions?.path) {
             if (Array.isArray(popOptions.path)) {
                 popOptions.path.forEach((pathOption) => {
@@ -219,17 +212,27 @@ export const getAll = (Model, popOptions) =>
                 query = query.populate(popOptions)
             }
         }
-        // If not in cache, fetch from database
 
-        const features = new APIFeatures(query, req.query)
-            .filter()
-            .sort()
-            .fieldsLimit()
-            .paginate()
+        // Check if any query parameter for sorting, filtering, limiting, or pagination is present
+        const { sort, limit, page, ...filters } = req.query
+        const hasQueryOptions =
+            sort || limit || page || Object.keys(filters).length > 0
 
-        const doc = await features.query
+        // If query options are present, apply them; otherwise, return the data
+        let doc
+        if (hasQueryOptions) {
+            const features = new APIFeatures(query, req.query)
+                .filter()
+                .sort()
+                .fieldsLimit()
+                .paginate()
 
-        // Cache the result
+            doc = await features.query
+        } else {
+            doc = await Model.find().lean()
+        }
+
+        // Cache the result if not in cache
         await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
 
         res.status(200).json({
@@ -239,6 +242,60 @@ export const getAll = (Model, popOptions) =>
             doc,
         })
     })
+
+// GET All Documents
+// export const getAll = (Model, popOptions) =>
+//     catchAsync(async (req, res, next) => {
+//         const cacheKey = getCacheKey(Model.modelName, '', req.query)
+
+//         console.log('cached data')
+//         // Check cache first
+//         const cacheddoc = await redisClient.get(cacheKey)
+
+//         if (cacheddoc !== null) {
+//             return res.status(200).json({
+//                 status: 'success',
+//                 cached: true,
+//                 results: JSON.parse(cacheddoc).length,
+//                 doc: JSON.parse(cacheddoc),
+//             })
+//         }
+
+//         // EXECUTE QUERY
+//         let query = Model.find()
+
+//         // If popOptions is provided and path is an array or a string, populate the query
+//         // if (popOptions?.path) {
+//         //     if (Array.isArray(popOptions.path)) {
+//         //         popOptions.path.forEach((pathOption) => {
+//         //             query = query.populate(pathOption)
+//         //         })
+//         //     } else {
+//         //         query = query.populate(popOptions)
+//         //     }
+//         // }
+//         // If not in cache, fetch from database
+
+//         const features = new APIFeatures(query, req.query)
+//             .filter()
+//             .sort()
+//             .fieldsLimit()
+//             .paginate()
+
+//         const doc = await features.query
+
+//         console.log('data')
+
+//         // Cache the result
+//         await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+//         res.status(200).json({
+//             status: 'success',
+//             cached: false,
+//             results: doc.length,
+//             doc,
+//         })
+//     })
 
 export const getOneBySlug = (Model, popOptions) =>
     catchAsync(async (req, res, next) => {
@@ -295,36 +352,37 @@ export const deleteOneWithTransaction = (Model, relatedModels = []) =>
                 )
             }
 
-            // Delete related documents in a transaction
+            const cacheKeys = []
+
             for (const relatedModel of relatedModels) {
                 const { model, foreignKey } = relatedModel
-                await model
-                    .deleteMany({ [foreignKey]: req.params.id })
-                    .session(session)
 
-                // delete document caches
+                const relatedDocs = await model
+                    .find({ [foreignKey]: req.params.id })
+                    .session(session)
+                if (relatedDocs.length > 0) {
+                    await model
+                        .deleteMany({ [foreignKey]: req.params.id })
+                        .session(session)
+                }
+
                 const cacheKey = getCacheKey(model.modelName.toString(), '')
-                await redisClient.del(cacheKey)
+                cacheKeys.push(cacheKey)
             }
 
-            // Delete the main document
             await doc.deleteOne({ session })
 
-            // Commit the transaction
-            await session.commitTransaction()
+            cacheKeys.push(getCacheKey(Model.modelName, req.params.id))
+            cacheKeys.push(getCacheKey(Model.modelName, '', req.query))
+
+            await Promise.all([
+                session.commitTransaction(),
+                redisClient.del(...cacheKeys),
+            ])
+
             session.endSession()
 
-            const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
-            await redisClient.del(cacheKeyOne)
-
-            // Update cache
-            const cacheKey = getCacheKey(Model.modelName, '', req.query)
-            await redisClient.del(cacheKey)
-
-            res.status(204).json({
-                status: 'success',
-                doc: null,
-            })
+            res.status(204).json({ status: 'success', doc: null })
         } catch (err) {
             await session.abortTransaction()
             session.endSession()
@@ -334,7 +392,7 @@ export const deleteOneWithTransaction = (Model, relatedModels = []) =>
         }
     })
 
-// UPDATE One Document
+// UPDATE Status of Document
 export const updateStatus = (Model) =>
     catchAsync(async (req, res, next) => {
         if (!req.body.status) {
@@ -360,14 +418,39 @@ export const updateStatus = (Model) =>
 
         const cacheKeyOne = getCacheKey(Model.modelName, req.params.id)
 
-        // delete pervious document data
-        await redisClient.del(cacheKeyOne)
-        // updated the cache with new data
-        await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
+        // delete all document caches related to this model
+        await deleteKeysByPattern(Model.modelName)
 
-        // Update cache
-        const cacheKey = getCacheKey(Model.modelName, '', req.query)
-        await redisClient.del(cacheKey)
+        res.status(200).json({
+            status: 'success',
+            doc,
+        })
+    })
+
+// UPDATE Publish Status of Document
+export const updatePublishStatus = (Model) =>
+    catchAsync(async (req, res, next) => {
+        if (!req.body.published) {
+            return next(
+                new AppError(`Please provide publish status value.`, 400)
+            )
+        }
+
+        // Perform the update operation
+        const doc = await Model.findByIdAndUpdate(req.params.id, publish, {
+            new: true,
+            runValidators: true,
+        })
+
+        const docName = Model.modelName.toLowerCase() || 'Document'
+
+        // Handle case where the document was not found
+        if (!doc) {
+            return next(new AppError(`No ${docName} found with that ID`, 404))
+        }
+
+        // delete all document caches related to this model
+        await deleteKeysByPattern(Model.modelName)
 
         res.status(200).json({
             status: 'success',

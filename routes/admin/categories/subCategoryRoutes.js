@@ -6,23 +6,28 @@ import {
     getSubCategoryBySlug,
     updateSubCategoryById,
     deleteSubCategoryById,
-} from '../controllers/subCategoryController.js'
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import subCategoryValidationSchema from './../validations/subCateogoryValidator.js'
-import { protect, restrictTo } from '../middleware/authMiddleware.js'
+} from './../../../controllers/admin/categories/subCategoryController.js'
+import { validateSchema } from '../../../middleware/validationMiddleware.js'
+import subCategoryValidationSchema from './../../../validations/admin/categories/subCateogoryValidator.js'
+import { protect, restrictTo } from './../../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
 router
     .route('/')
-    .post(validateSchema(subCategoryValidationSchema), createSubCategory)
+    .post(
+        protect,
+
+        validateSchema(subCategoryValidationSchema),
+        createSubCategory
+    )
     .get(getAllSubCategories)
 
 router
     .route('/:id')
     .get(getSubCategoryById)
-    .put(protect, restrictTo('admin'), updateSubCategoryById)
-    .delete(protect, restrictTo('admin'), deleteSubCategoryById)
+    .put(protect, updateSubCategoryById)
+    .delete(protect, deleteSubCategoryById)
 
 router.route('/slug/:slug').get(getSubCategoryBySlug)
 

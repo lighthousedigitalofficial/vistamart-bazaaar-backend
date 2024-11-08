@@ -25,6 +25,6 @@ const productSchema = new mongoose.Schema({
 });
 
 // Create the model using adminDbConnection
-const Product = adminDbConnection.model("Product", productSchema);
+const ProductBusiness = adminDbConnection.model("ProductBusiness", productSchema);
 
-export default Product;
+export default ProductBusiness;

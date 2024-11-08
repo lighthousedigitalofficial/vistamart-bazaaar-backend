@@ -1,9 +1,12 @@
 import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
-import {
-    adminDbConnection,
-    sellerDbConnection,
-} from '../../config/dbConnections.js'
+import { sellerDbConnection } from '../../config/dbConnections.js'
+
+import Brand from '../admin/brandModel.js'
+import Category from '../admin/categories/categoryModel.js'
+import SubCategory from '../admin/categories/subCategoryModel.js'
+import SubSubCategory from '../admin/categories/subSubCategoryModel.js'
+
+import { checkReferenceId } from '../../utils/helpers.js'
 
 const productSchema = new mongoose.Schema(
     {
@@ -11,6 +14,7 @@ const productSchema = new mongoose.Schema(
             type: String,
             required: [true, 'Please provide Product name'],
             trim: true,
+            maxlength: [100, 'Product name cannot exceed 100 characters'],
         },
         description: {
             type: String,
@@ -38,11 +42,12 @@ const productSchema = new mongoose.Schema(
         productType: {
             type: String,
             required: [true, 'Please provide Product type'],
+            enum: ['physical', 'digital'],
+            default: 'physical',
         },
         digitalProductType: {
             type: String,
-            enum: ['physical', 'digital'],
-            default: 'physical',
+            enum: ['readyAfterSell', 'readyProduct'],
         },
         sku: {
             type: String,
@@ -55,11 +60,13 @@ const productSchema = new mongoose.Schema(
         tags: [String],
         price: {
             type: Number,
-            required: [true, 'Please provide Price'],
+            min: [0, 'Price cannot be negative'],
         },
         discount: {
             type: Number,
-            discount: 0,
+            min: [0, 'Discount cannot be negative'],
+            max: [100, 'Discount cannot exceed 100%'],
+            default: 0,
         },
         discountType: {
             type: String,
@@ -67,26 +74,32 @@ const productSchema = new mongoose.Schema(
         },
         discountAmount: {
             type: Number,
+            min: [0, 'Discount amount cannot be negative'],
             default: 0,
         },
         taxAmount: {
             type: Number,
+            min: [0, 'Tax amount cannot be negative'],
             default: 0,
         },
         taxIncluded: {
             type: Boolean,
+            default: false,
         },
         shippingCost: {
             type: Number,
+            min: [0, 'Shipping cost cannot be negative'],
             default: 0,
         },
         minimumOrderQty: {
             type: Number,
-            required: [true, 'Please provide Minimum order quantity'],
+            required: [true, 'Please provide Minimum Order Quantity'],
+            min: [1, 'Minimum order quantity must be at least 1'],
         },
         stock: {
             type: Number,
-            required: [true, 'Please provide Stock'],
+            required: [true, 'Please provide Stock quantity'],
+            min: [0, 'Stock cannot be negative'],
         },
         isFeatured: {
             type: Boolean,
@@ -100,129 +113,81 @@ const productSchema = new mongoose.Schema(
         ],
         attributes: [
             {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Attribute',
+                attribute: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Attribute',
+                },
+                price: {
+                    type: Number,
+                    min: [0, 'Attribute price cannot be negative'],
+                },
             },
         ],
         thumbnail: String,
         images: [String],
-        videoLink: {
-            type: String,
-        },
+        videoLink: String,
         status: {
             type: String,
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',
         },
-        ownerId: {
+        userId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: [true, 'Please provide user.'],
+            required: [true, 'Please provide user ID'],
         },
-        ownerType: {
+        userType: {
             type: String,
             enum: ['vendor', 'in-house'],
-            required: true,
+            required: [true, 'Please provide user type'],
         },
         slug: String,
+        sold: {
+            type: Number,
+            default: 0,
+        },
         rating: {
             type: Number,
-            required: [true, 'Please provide rating.'],
+            min: [0, 'Rating cannot be negative'],
+            max: [5, 'Rating cannot exceed 5'],
             default: 0,
-            set: (val) => (Math.round(val * 10) / 10).toFixed(1),
         },
         numOfReviews: {
             type: Number,
-            required: [true, 'Number of reviews are required.'],
+            min: [0, 'Number of reviews cannot be negative'],
             default: 0,
         },
+        metaTitle: {
+            type: String,
+            maxlength: [60, 'Meta title cannot exceed 60 characters'],
+        },
+        metaDescription: {
+            type: String,
+            maxlength: [160, 'Meta description cannot exceed 160 characters'],
+        },
     },
-    {
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
-        timestamps: true,
-    }
+    { timestamps: true }
 )
 
 productSchema.pre('save', async function (next) {
-    if (this.category) {
-        const category = await adminDbConnection
-            .model('Category')
-            .findById(this.category)
-        if (!category) {
-            return next(
-                new AppError('Referenced category ID does not exist', 400)
-            )
+    try {
+        await checkReferenceId(Category, this.category, next)
+        await checkReferenceId(Brand, this.brand, next)
+
+        if (this.subCategory) {
+            await checkReferenceId(SubCategory, this.subCategory, next)
+
+            if (this.SubSubCategory) {
+                await checkReferenceId(
+                    SubSubCategory,
+                    this.subSubCategory,
+                    next
+                )
+            }
         }
-    }
 
-    if (this.subCategory) {
-        const subCategory = await adminDbConnection
-            .model('SubCategory')
-            .findById(this.subCategory)
-
-        if (!subCategory) {
-            return next(
-                new AppError('Referenced subCategory ID does not exist', 400)
-            )
-        }
-    }
-
-    if (this.subSubCategory) {
-        const subSubCategory = await adminDbConnection
-            .model('SubSubCategory')
-            .findById(this.subSubCategory)
-
-        if (!subSubCategory) {
-            return next(
-                new AppError('Referenced subSubCategory ID does not exist', 400)
-            )
-        }
-    }
-
-    const brand = await adminDbConnection.model('Brand').findById(this.brand)
-    if (!brand) {
-        return next(new AppError('Referenced brand ID does not exist', 400))
-    }
-    next()
-})
-
-// Virtual middleware fetch all the reviews associated with this product
-productSchema.virtual('reviews', {
-    ref: 'ProductReview',
-    localField: '_id',
-    foreignField: 'product',
-})
-
-productSchema.virtual('totalOrders', {
-    ref: 'Order',
-    localField: '_id',
-    foreignField: 'products',
-    count: true,
-})
-
-productSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'category',
-        select: 'name',
-    })
-        .populate({
-            path: 'brand',
-            select: 'name',
-        })
-        .populate({
-            path: 'subCategory',
-            select: 'name',
-        })
-        .populate({
-            path: 'subSubCategory',
-            select: 'name',
-        })
-    next()
-})
-
-productSchema.post('findByIdAndDelete', async function (doc) {
-    if (doc) {
-        await mongoose.model('Review').deleteMany({ product: doc._id })
+        next()
+    } catch (error) {
+        return next(error)
     }
 })
 

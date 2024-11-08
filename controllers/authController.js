@@ -16,17 +16,24 @@ import {
 } from '../utils/helpers.js'
 import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
+import OTP from '../models/users/otpModel.js'
+import * as otpService from './../services/otpService.js'
 
-const createSendToken = catchAsync(async (user, statusCode, res) => {
+export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
     const { accessToken } = await loginService(user)
 
     // set cookie options
+
+    // Set cookie options for refresh token (secure & httpOnly)
     const cookieOptions = {
         expires: new Date(
             Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-        ),
-        httpOnly: true,
+        ), // Convert days to milliseconds
+        httpOnly: true, // Prevent JS access to cookie
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        // sameSite: "strict", // CSRF protection
+        sameSite: 'None',
     }
 
     // In production mode: we set to secure = true
@@ -34,7 +41,10 @@ const createSendToken = catchAsync(async (user, statusCode, res) => {
 
     // do not show the password to client side
     user.password = undefined
+    user.verified = undefined
+    user.phoneNumber = undefined
 
+    // Store refresh token in an HTTP-only cookie
     res.cookie('jwt', accessToken, cookieOptions)
 
     res.status(statusCode).json({
@@ -64,8 +74,6 @@ export const login = catchAsync(async (req, res, next) => {
 })
 
 export const signup = catchAsync(async (req, res, next) => {
-    const { filteredData } = checkFields(User, req, next)
-
     const { name, email, password } = filteredData
 
     const newUser = await User.create({
@@ -73,8 +81,6 @@ export const signup = catchAsync(async (req, res, next) => {
         email,
         password,
     })
-
-    console.log(newUser)
 
     // delete pervious cache
     const cacheKey = getCacheKey(User, '', req.query)
@@ -116,10 +122,6 @@ export const loginCustomer = catchAsync(async (req, res, next) => {
 })
 
 export const signupCustomer = catchAsync(async (req, res, next) => {
-    // const data = checkFields(Customer, req, next)
-
-    console.log(req.body)
-
     const { firstName, lastName, email, password } = req.body
 
     const newCustomer = new Customer({
@@ -131,14 +133,66 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
 
     await newCustomer.save()
 
-    // delete pervious cache
+    // 2. Generate OTP and save it in the OTP model
+    const { token, hash } = otpService.generateOTP()
+    await otpService.saveOTP(email, null, hash)
+
+    // 3. Send OTP to email for verification
+    await otpService.sendEmail(email, token)
+
+    // 4. Clear previous cache for customers
     const cacheKey = getCacheKey(Customer, '', req.query)
     await redisClient.del(cacheKey)
 
-    createSendToken(newCustomer, 201, res)
+    // 5. Respond with success message
+    res.status(201).json({
+        status: 'success',
+        message: 'Please verify your account using the OTP sent to your email.',
+    })
 })
 
-export const loginSeller = catchAsync(async (req, res, next) => {
+export const verifyCustomerOTPViaEmail = catchAsync(async (req, res, next) => {
+    const { token, email } = req.body
+
+    // Fetch the latest OTP for this email
+    const otpEntry = await OTP.findOne({ email }).sort({ createdAt: -1 }).exec()
+
+    if (!otpEntry) {
+        return next(new AppError('No OTP found for this email', 404))
+    }
+
+    // Check if the OTP has expired
+    // 5-minute expiration
+    const isExpired = Date.now() - otpEntry.createdAt > 5 * 60 * 1000
+
+    if (isExpired) {
+        // Cleanup expired OTPs
+        await OTP.deleteMany({ email })
+
+        return next(new AppError('OTP has expired', 400))
+    }
+
+    // Validate OTP hash
+    const isValid = await otpService.validateOTP(token, otpEntry.hash)
+
+    if (!isValid) return next(new AppError('Invalid OTP provided', 400))
+
+    // OTP is valid; proceed with deletion and user verification
+    await OTP.deleteMany({ email })
+
+    await Customer.findOneAndUpdate(
+        { email },
+        { verified: true, status: 'active' },
+        { new: true }
+    ).exec()
+
+    res.status(200).json({
+        status: 'success',
+        message: 'OTP verified successfully.',
+    })
+})
+
+export const loginVendor = catchAsync(async (req, res, next) => {
     const { email, password } = req.body
 
     // 1) Check if email and password exists
@@ -154,7 +208,10 @@ export const loginSeller = catchAsync(async (req, res, next) => {
     }
 
     // 3) If everything is Ok, then send the response to client
-    createSendToken(seller, 200, res)
+    res.status(201).json({
+        status: 'success',
+        message: 'OTP sent.',
+    })
 })
 
 export const sellerSignup = catchAsync(async (req, res, next) => {
@@ -184,7 +241,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        const resetURL = `http://localhost:3000/users/resetPassword/${resetToken}`
+        const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
 
         // Get the user's IP address
         const ipAddress = req.ip

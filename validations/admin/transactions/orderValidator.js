@@ -5,6 +5,7 @@ const orderValidationSchema = Joi.object({
         'any.required': 'Customer ID is required',
         'string.base': 'Customer ID must be a string',
     }),
+
     vendors: Joi.array()
         .items(
             Joi.string().required().messages({
@@ -18,9 +19,16 @@ const orderValidationSchema = Joi.object({
         }),
     products: Joi.array()
         .items(
-            Joi.string().required().messages({
-                'any.required': 'Product ID is required',
-                'string.base': 'Product ID must be a string',
+            Joi.object({
+                product: Joi.string().required().messages({
+                    'any.required': 'Product ID is required',
+                    'string.base': 'Product ID must be a string',
+                }),
+                quantity: Joi.number().integer().min(1).required().messages({
+                    'any.required': 'Quantity is required',
+                    'number.base': 'Quantity must be a number',
+                    'number.min': 'Quantity cannot be less than 1',
+                }),
             })
         )
         .required()
@@ -33,13 +41,18 @@ const orderValidationSchema = Joi.object({
         'number.base': 'Total amount must be a number',
     }),
     paymentMethod: Joi.string()
-        .valid('credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery')
+        .valid('credit_card', 'jazzCash', 'bank_transfer', 'cash_on_delivery')
         .required()
         .messages({
             'any.required': 'Payment method is required',
             'string.base': 'Payment method must be a string',
             'any.only': 'Invalid payment method',
         }),
+    paymentStatus: Joi.string().valid('Unpaid', 'Paid').required().messages({
+        'any.required': 'Payment status is required',
+        'string.base': 'Payment status must be a string',
+        'any.only': 'Invalid payment status',
+    }),
     shippingAddress: Joi.object({
         name: Joi.string().required().messages({
             'string.base': 'Name must be a string.',

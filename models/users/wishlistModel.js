@@ -1,5 +1,10 @@
 import mongoose from 'mongoose'
-import AppError from '../../utils/appError.js'
+import Customer from './customerModel.js'
+
+import { userDbConnection } from '../../config/dbConnections.js'
+import Product from '../sellers/productModel.js'
+import AppError from './../../utils/appError.js'
+import { checkReferenceId } from '../../utils/helpers.js'
 
 const wishlistSchema = new mongoose.Schema(
     {
@@ -25,13 +30,6 @@ const wishlistSchema = new mongoose.Schema(
     }
 )
 
-// Virtual field for vendor bank (if needed)
-wishlistSchema.virtual('vendorBank', {
-    ref: 'VendorBank',
-    localField: '_id',
-    foreignField: 'vendor',
-})
-
 // Calculate total products before saving the data
 wishlistSchema.pre('save', function (next) {
     this.totalProducts = this.products.length
@@ -41,9 +39,6 @@ wishlistSchema.pre('save', function (next) {
 // Pre-find hook to populate products and customer (remove .lean())
 wishlistSchema.pre(/^find/, function (next) {
     this.populate({
-        path: 'products',
-        select: '-__v -createdAt -updatedAt',
-    }).populate({
         path: 'customer', // Corrected from 'user' to 'customer'
         select: '-__v -createdAt -updatedAt -role -status -referCode',
     })
@@ -55,23 +50,13 @@ wishlistSchema.pre(/^find/, function (next) {
 wishlistSchema.pre('save', async function (next) {
     try {
         // Check if customer exists
-        const customer = await mongoose
-            .model('Customer')
-            .findById(this.customer)
-
-        if (!customer) {
-            return next(
-                new AppError('Referenced customer ID does not exist', 400)
-            )
-        }
+        await checkReferenceId(Customer, this.customer, next)
 
         // Check if products exist and validate them
         if (this.products && this.products.length > 0) {
-            const productCheck = await mongoose
-                .model('Product')
-                .countDocuments({
-                    _id: { $in: this.products },
-                })
+            const productCheck = await Product.countDocuments({
+                _id: { $in: this.products },
+            })
 
             if (productCheck !== this.products.length) {
                 return next(
@@ -86,6 +71,6 @@ wishlistSchema.pre('save', async function (next) {
     }
 })
 
-const Wishlist = mongoose.model('Wishlist', wishlistSchema)
+const Wishlist = userDbConnection.model('Wishlist', wishlistSchema)
 
 export default Wishlist

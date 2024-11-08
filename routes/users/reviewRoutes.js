@@ -1,7 +1,7 @@
 import express from 'express'
 
-import { validateSchema } from '../middleware/validationMiddleware.js'
-import { protect, restrictTo } from './../middleware/authMiddleware.js'
+import { protect, restrictTo } from './../../middleware/authMiddleware.js'
+
 import {
     createProductReview,
     deleteProductReview,
@@ -9,27 +9,24 @@ import {
     getProductReviewById,
     updateProductReview,
     updateProductReviewStatus,
-} from '../controllers/reviewController.js'
-import reviewValidationSchema from '../validations/reviewValidator.js'
+} from '../../controllers/users/reviewController.js'
+
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import reviewValidationSchema from './../../validations/reviewValidator.js'
 
 const router = express.Router()
 
 router
     .route('/')
     .post(protect, validateSchema(reviewValidationSchema), createProductReview)
-    .get(getAllProductReviews)
+    .get(protect, getAllProductReviews)
 
 router
     .route('/:id')
     .get(protect, getProductReviewById)
     .put(protect, updateProductReview)
-    .delete(protect, restrictTo('admin'), deleteProductReview)
+    .delete(protect, deleteProductReview)
 
-router.put(
-    '/status/:id',
-    protect,
-    restrictTo('admin', 'vendor'),
-    updateProductReviewStatus
-)
+router.put('/status/:id', protect, updateProductReviewStatus)
 
 export default router

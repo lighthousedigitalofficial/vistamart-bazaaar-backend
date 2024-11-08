@@ -1,5 +1,10 @@
 import mongoose from 'mongoose'
+import { transactionDbConnection } from '../../config/dbConnections.js'
 import AppError from '../../utils/appError.js'
+import Product from '../sellers/productModel.js'
+import Vendor from '../sellers/vendorModel.js'
+import { checkReferenceId } from '../../utils/helpers.js'
+import Customer from '../users/customerModel.js'
 
 const orderSchema = new mongoose.Schema(
     {
@@ -20,12 +25,19 @@ const orderSchema = new mongoose.Schema(
         ],
         products: [
             {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Product',
-                required: [true, 'Please provide product.'],
+                product: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Product',
+                    required: [true, 'Please provide product.'],
+                },
+                quantity: {
+                    type: Number,
+                    required: [true, 'Please provide product quantity.'],
+                    min: [1, 'Quantity cannot be less than 1.'],
+                },
             },
         ],
-        orderStatus: {
+        status: {
             type: String,
             enum: [
                 'pending',
@@ -39,6 +51,11 @@ const orderSchema = new mongoose.Schema(
             ],
             default: 'pending',
         },
+        paymentStatus: {
+            type: String,
+            enum: ['Paid', 'Unpaid'],
+            default: 'Unpaid',
+        },
         totalAmount: {
             type: Number,
             required: [true, 'Please provide total amount.'],
@@ -46,10 +63,10 @@ const orderSchema = new mongoose.Schema(
         paymentMethod: {
             type: String,
             enum: [
-                'credit_card',
-                'paypal',
-                'bank_transfer',
                 'cash_on_delivery',
+                'credit_card',
+                'jazzCash',
+                'bank_transfer',
             ],
             required: true,
         },
@@ -82,58 +99,34 @@ const orderSchema = new mongoose.Schema(
     }
 )
 
-orderSchema.pre(/^find/, function (next) {
-    this.populate({
-        path: 'vendors',
-        select: '-__v -createdAt -updatedAt -role -status',
-    })
-        .populate({
-            path: 'products',
-            select: '-__v -createdAt -updatedAt',
-        })
-        .populate({
-            path: 'customer',
-            select: '-__v -createdAt -updatedAt -role -status -referCode',
-        })
-    next()
-})
-
 orderSchema.pre('save', async function (next) {
-    try {
-        // Check if vendors are provided and validate them
-        if (this.vendors && this.vendors.length > 0) {
-            const vendorCheck = await mongoose.model('Vendor').countDocuments({
-                _id: { $in: this.vendors },
-            })
+    await checkReferenceId(Customer, this.customer, next)
 
-            if (vendorCheck !== this.vendors.length) {
-                return next(
-                    new AppError('One or more vendors do not exist.', 400)
-                )
-            }
+    // Check if products exist and validate them
+    if (this.products && this.products.length > 0) {
+        const productIds = this.products.map((p) => p.product)
+
+        const productCheck = await Product.countDocuments({
+            _id: { $in: productIds },
+        }).lean()
+
+        if (productCheck !== this.products.length) {
+            return next(new AppError('One or more products do not exist.', 400))
         }
+    }
 
-        // Check if products are provided and validate them
-        if (this.products && this.products.length > 0) {
-            const productCheck = await mongoose
-                .model('Product')
-                .countDocuments({
-                    _id: { $in: this.products },
-                })
+    // Check if vendor exist and validate them
+    if (this.vendors && this.vendors.length > 0) {
+        const vendorCheck = await Vendor.countDocuments({
+            _id: { $in: this.vendors },
+        })
 
-            if (productCheck !== this.products.length) {
-                return next(
-                    new AppError('One or more products do not exist.', 400)
-                )
-            }
+        if (vendorCheck !== this.vendors.length) {
+            return next(new AppError('Vendor do not exist.', 400))
         }
-
-        next()
-    } catch (err) {
-        next(err)
     }
 })
 
-const Order = mongoose.model('Order', orderSchema)
+const Order = transactionDbConnection.model('Order', orderSchema)
 
 export default Order

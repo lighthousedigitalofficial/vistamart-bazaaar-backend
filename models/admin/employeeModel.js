@@ -37,6 +37,16 @@ const employeeSchema = new mongoose.Schema(
             minlength: 8,
             select: false,
         },
+        identifyType: {
+            type: String,
+            enum: ['nid', 'passport'],
+        },
+        identifyNumber: {
+            type: Number,
+        },
+        identityImage: {
+            type: String,
+        },
         status: {
             type: String,
             enum: ['active', 'inactive'],
@@ -54,7 +64,7 @@ const employeeSchema = new mongoose.Schema(
 employeeSchema.pre(/^find/, function (next) {
     this.populate({
         path: 'role',
-        select: 'name',
+        select: '-__v',
     })
     next()
 })
