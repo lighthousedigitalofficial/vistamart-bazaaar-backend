@@ -14,6 +14,6 @@ router.use('/refunds', redundRoutes)
 router.use('/admin-wallet', adminWalletRoutes)
 router.use('/transaction', transactionRoutes)
 router.use('/seller-wallet', sellerWalletRoutes)
-router.use('/api/payment', paymentRoutes)
+router.use('/payment', paymentRoutes)
 
 export default router

@@ -11,7 +11,7 @@ import {
 } from '../../controllers/sellers/vendorController.js'
 import { validateSchema } from '../../middleware/validationMiddleware.js'
 import vendorValidationSchema from '../../validations/admin/sellers/vendorValidator.js'
-import { loginLimiter } from '../../utils/helpers.js'
+
 import {
     protect,
     restrictTo,
@@ -32,15 +32,12 @@ router
 router.post('/login', loginVendor)
 router.post('/logout', protect, logout)
 
-router
-    .route('/')
-    .post(protect, restrictTo('user-management'), createVendor)
-    .get(getAllVendors)
+router.route('/').post(protect, createVendor).get(getAllVendors)
 
 router
     .route('/:id')
     .get(getVendorById)
-    .delete(protect, restrictTo('user-management'), deleteVendor)
+    .delete(protect, deleteVendor)
     .put(protect, updateVendor)
 
 router.put('/update-password', protect, selectModelByRole, updatePassword)
@@ -48,7 +45,7 @@ router.put('/update-password', protect, selectModelByRole, updatePassword)
 router.put(
     '/status/:id',
     protect,
-    restrictTo('user-management'),
+
     updateVendorStatus
 )
 

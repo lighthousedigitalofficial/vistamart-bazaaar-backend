@@ -12,21 +12,18 @@ import { protect, restrictTo } from './../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-router
-    .route('/')
-    .post(protect, restrictTo('promotion-management'), createBanner)
-    .get(getBanners)
+router.route('/').post(protect, createBanner).get(getBanners)
 
 router
     .route('/:id', checkObjectId)
     .get(getBannerById)
-    .put(protect, restrictTo('promotion-management'), updateBanner)
-    .delete(protect, restrictTo('promotion-management'), deleteBanner)
+    .put(protect, updateBanner)
+    .delete(protect, deleteBanner)
 
 router.put(
     '/publish/:id',
     protect,
-    restrictTo('promotion-management'),
+
     updateBannerPublishStatus
 )
 

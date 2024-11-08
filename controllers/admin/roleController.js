@@ -10,9 +10,11 @@ import { getCacheKey } from '../../utils/helpers.js'
 import redisClient from '../../config/redisConfig.js'
 import AppError from '../../utils/appError.js'
 import catchAsync from '../../utils/catchAsync.js'
+import { deleteKeysByPattern } from '../../services/redisService.js'
 
 const allowedModules = [
     'user-management',
+    'vendor-management',
     'employee-management',
     'system-settings',
     'product-management',
@@ -47,9 +49,7 @@ export const createRole = catchAsync(async (req, res, next) => {
         return next(new AppError(`Role could not be created`, 400))
     }
 
-    // delete all documents caches related to this model
-    const cacheKey = getCacheKey('Role', '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Role')
 
     res.status(201).json({
         status: 'success',
@@ -95,16 +95,8 @@ export const updateRole = catchAsync(async (req, res, next) => {
         return next(new AppError(`No role found with that ID`, 404))
     }
 
-    const cacheKeyOne = getCacheKey('Role', roleId)
-
-    // delete pervious document data
-    await redisClient.del(cacheKeyOne)
-    // updated the cache with new data
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
-
-    // Update cache
-    const cacheKey = getCacheKey('Role', '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Role')
+    await deleteKeysByPattern('User')
 
     res.status(200).json({
         status: 'success',

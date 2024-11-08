@@ -16,12 +16,12 @@ const router = express.Router()
 router
     .route('/')
     .post(protect, validateSchema(vendorBankValidationSchema), createVendorBank)
-    .get(protect, restrictTo('user-management'), getAllVendorBanks)
+    .get(protect, getAllVendorBanks)
 
 router
     .route('/:id')
     .get(protect, getVendorBankById)
     .put(protect, updateVendorBank)
-    .delete(protect, restrictTo('user-management'), deleteVendorBank)
+    .delete(protect, deleteVendorBank)
 
 export default router
