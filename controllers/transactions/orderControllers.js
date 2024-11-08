@@ -116,6 +116,7 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
     }
 
     let query = Order.find().lean()
+
     const features = new APIFeatures(query, req.query)
         .filter()
         .sort()
@@ -123,14 +124,12 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
         .paginate()
 
     const orders = await features.query
-    if (!orders || orders.length === 0) {
-        return next(new AppError('No orders found', 404))
-    }
 
     // Batch fetching all products, vendors, and customers
     const productIds = orders.flatMap((order) =>
         order.products.map((p) => p.product)
     )
+
     const vendorIds = orders.map((order) => order.vendor)
     const customerIds = orders.map((order) => order.customer)
 
