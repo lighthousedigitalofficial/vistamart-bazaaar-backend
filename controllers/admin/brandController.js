@@ -223,7 +223,28 @@ export const updateBrand = catchAsync(async (req, res) => {
         doc,
     })
 })
+
 // Delete a brand by ID
-export const deleteBrand = deleteOne(Brand)
+export const deleteBrand = catchAsync(async (req, res, next) => {
+    // Delete the brand document
+    const brand = await Brand.findByIdAndDelete(req.params.id).exec()
+
+    // Handle case where the brand was not found
+    if (!brand) {
+        return next(new AppError(`No brand found with that ID`, 404))
+    }
+
+    // Delete all products associated with this brand
+    await Product.deleteMany({ brand: req.params.id }).exec()
+
+    await deleteKeysByPattern('Brand')
+    await deleteKeysByPattern('Category')
+
+    res.status(204).json({
+        status: 'success',
+        doc: null,
+    })
+})
+
 // Update a brand's status by ID
 export const updateBrandStatus = updateStatus(Brand)
