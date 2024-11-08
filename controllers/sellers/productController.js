@@ -442,20 +442,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
         { new: true }
     )
 
-    // Update cache for the product
-    const cacheKeyId = getCacheKey('Product', updatedProduct?._id)
-    const cacheKeySlug = getCacheKey('Product', updatedProduct?.slug)
-
-    await redisClient.del(cacheKeyId)
-    await redisClient.del(cacheKeySlug)
-
-    // Set updated product in cache
-    await redisClient.setEx(cacheKeyId, 3600, JSON.stringify(updatedProduct))
-    await redisClient.setEx(cacheKeySlug, 3600, JSON.stringify(updatedProduct))
-
-    // Invalidate product list cache
-    const cacheKeyModel = getCacheKey('Product', '', req.query)
-    await redisClient.del(cacheKeyModel)
+    await deleteKeysByPattern('Product')
 
     res.status(200).json({
         status: 'success',
