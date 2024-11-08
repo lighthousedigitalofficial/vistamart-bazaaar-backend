@@ -14,6 +14,7 @@ import {
 import Product from '../../models/sellers/productModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import AppError from '../../utils/appError.js'
+import { deleteKeysByPattern } from '../../services/redisService.js'
 
 // Create a new brand
 export const createBrand = createOne(Brand)
@@ -215,8 +216,7 @@ export const updateBrand = catchAsync(async (req, res) => {
     }
 
     // Update cache
-    const cacheKey = getCacheKey('Brand', '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Brand')
 
     res.status(200).json({
         status: 'success',
