@@ -238,7 +238,7 @@ export const deleteBrand = catchAsync(async (req, res, next) => {
     await Product.deleteMany({ brand: req.params.id }).exec()
 
     await deleteKeysByPattern('Brand')
-    await deleteKeysByPattern('Category')
+    await deleteKeysByPattern('Product')
 
     res.status(204).json({
         status: 'success',
