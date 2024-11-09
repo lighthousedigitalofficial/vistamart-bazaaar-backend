@@ -11,14 +11,10 @@ import Customer from '../../models/users/customerModel.js'
 import Coupon from '../../models/sellers/couponModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import AppError from '../../utils/appError.js'
-import Refund from '../../models/transactions/refundModel.js'
 
-import {
-    deleteOneWithTransaction,
-    getOne,
-    updateStatus,
-} from '../../factory/handleFactory.js'
 import { deleteKeysByPattern } from '../../services/redisService.js'
+import { deleteOne } from './../../factory/handleFactory.js'
+import { sendOrderEmail } from '../../services/orderMailServices.js'
 
 const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     // Find the coupon by ID
@@ -89,13 +85,23 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     await deleteKeysByPattern('Order')
 
+    // Send order confirmation email
+    try {
+        const customer = await Customer.findById(customerId).select(
+            'firstName email'
+        )
+        await sendOrderEmail(customer, doc.orderId)
+
+        console.log('Email send to cutomer')
+    } catch (error) {
+        console.error('Error sending email:', error)
+    }
+
     res.status(201).json({
         status: 'success',
         doc,
     })
 })
-
-// export const getAllOrders = getAll(Order)
 
 // Get all orders
 export const getAllOrders = catchAsync(async (req, res, next) => {
@@ -156,11 +162,7 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
 })
 
 // Delete an order
-
-const relatedModels = [{ model: Refund, foreignKey: 'order' }]
-
-export const deleteOrder = deleteOneWithTransaction(Order, relatedModels)
-
+export const deleteOrder = deleteOne(Order)
 // Get order by ID
 export const getOrderById = catchAsync(async (req, res, next) => {
     const { id } = req.params

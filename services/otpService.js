@@ -1,21 +1,12 @@
-import nodemailer from 'nodemailer'
 import speakeasy from 'speakeasy'
-import twilio from 'twilio'
+// import twilio from 'twilio'
 import crypto from 'crypto'
 
 import catchAsync from '../utils/catchAsync.js'
 import OTP from '../models/users/otpModel.js'
 import keys from '../config/keys.js'
 import AppError from '../utils/appError.js'
-
-// keysure nodemailer
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: keys.emailAddress,
-        pass: keys.emailPassKey,
-    },
-})
+import { emailTransporter } from '../utils/helpers.js'
 
 // keysure Twilio
 // const client = twilio(keys.twilioAccountSID, keys.twilioAuthToken)
@@ -127,7 +118,7 @@ export const sendEmail = catchAsync(async (email, otp) => {
       </html>
     `,
     }
-    return transporter.sendMail(mailOptions)
+    return emailTransporter.sendMail(mailOptions)
 })
 
 // Send OTP via SMS
