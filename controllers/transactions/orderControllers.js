@@ -18,6 +18,7 @@ import {
     getOne,
     updateStatus,
 } from '../../factory/handleFactory.js'
+import { deleteKeysByPattern } from '../../services/redisService.js'
 
 const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     // Find the coupon by ID
@@ -86,12 +87,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
         return next(new AppError(`Order could not be created`, 400))
     }
 
-    const cacheKeyOne = getCacheKey('Order', doc?._id)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
-
-    // delete all documents caches related to this model
-    const cacheKey = getCacheKey('Order', '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Order')
 
     res.status(201).json({
         status: 'success',
@@ -303,21 +299,10 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
             { new: true }
         )
 
-        const cacheProductKey = getCacheKey('Product', product)
-        await redisClient.del(cacheProductKey)
+        await deleteKeysByPattern('Product')
     }
 
-    const cacheProduct = getCacheKey('Product')
-    await redisClient.del(cacheProduct)
-
-    // Handle Redis cache
-    const cacheKeyOne = getCacheKey('Order', req.params.id)
-    await redisClient.del(cacheKeyOne)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
-
-    // Update list cache
-    const cacheKey = getCacheKey('Order', '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Order')
 
     res.status(200).json({
         status: 'success',
