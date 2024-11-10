@@ -90,7 +90,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
         const customer = await Customer.findById(customerId).select(
             'firstName email'
         )
-        await sendOrderEmail(customer, doc.orderId)
+        await sendOrderEmail(customer, newOrder.orderId)
 
         console.log('Email send to cutomer')
     } catch (error) {
