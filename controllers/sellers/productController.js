@@ -64,10 +64,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid userType provided', 400))
     }
 
-    if (taxIncluded) {
-        price += taxAmount
-    }
-
     let updatedDiscountAmount = discountAmount
 
     if (discountType === 'flat') {
@@ -433,7 +429,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
         sku,
         unit,
         tags,
-        price, // Base price or default price if no attribute price
+        price,
         discount,
         discountType,
         discountAmount,
@@ -444,7 +440,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
         stock,
         isFeatured,
         colors,
-        attributes, // Assuming attributes like 'small', 'medium', 'large'
+        attributes,
         size,
         videoLink,
         userId,
@@ -459,36 +455,6 @@ export const updateProduct = catchAsync(async (req, res, next) => {
         updatedDiscountAmount = discountAmount
     } else if (discountType === 'percent') {
         updatedDiscountAmount = (price * discount) / 100
-    }
-
-    // Fetch prices based on selected attributes (e.g., size or color)
-    let finalPrice = price // Start with the base price
-
-    if (attributes && attributes.length > 0) {
-        const attributePricePromises = attributes.map(async (attributeId) => {
-            // Fetch attribute from the Attribute model (from another DB)
-            const attribute = await adminDbConnection
-                .model('Attribute')
-                .findById(attributeId)
-            if (!attribute) {
-                return next(new AppError('Invalid attribute selected', 400))
-            }
-            // Assume attribute has a `priceModifier` field to adjust the price
-
-            return attribute.priceModifier || 0
-        })
-
-        const attributePriceModifiers = await Promise.all(
-            attributePricePromises
-        )
-
-        // Sum all the attribute-based price modifiers to get the final price
-        finalPrice =
-            price +
-            attributePriceModifiers.reduce(
-                (total, modifier) => total + modifier,
-                0
-            )
     }
 
     // Update the product with new values and calculated final price
