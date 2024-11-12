@@ -181,7 +181,7 @@ export const handleJazzCashResponse = (req, res) => {
         } = req.body
 
         console.log({ response: req.body })
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost'
+        const clientUrl = process.env.CLIENT_URL || 'http://localhost:80'
 
         let paymentStatus
 
