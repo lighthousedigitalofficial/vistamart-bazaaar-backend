@@ -16,19 +16,21 @@ const orderSchema = new mongoose.Schema(
             ref: 'Customer',
             required: [true, 'Please provide customer.'],
         },
-        vendors: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Vendor',
-                required: [true, 'Please provide vendor.'],
-            },
-        ],
+        vendor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Vendor',
+            required: [true, 'Please provide vendor.'],
+        },
         products: [
             {
                 product: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'Product',
                     required: [true, 'Please provide product.'],
+                },
+                price: {
+                    type: Number,
+                    required: [true, 'Please provide product price.'],
                 },
                 quantity: {
                     type: Number,
