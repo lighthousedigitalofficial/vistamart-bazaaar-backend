@@ -3,9 +3,6 @@ import AppError from '../../utils/appError.js'
 import catchAsync from '../../utils/catchAsync.js'
 import { createSendToken } from '../authController.js'
 
-import redisClient from '../../config/redisConfig.js'
-import { getCacheKey } from '../../utils/helpers.js'
-
 import {
     createOne,
     deleteOne,
