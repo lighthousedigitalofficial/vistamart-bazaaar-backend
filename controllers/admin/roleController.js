@@ -59,21 +59,6 @@ export const updateRole = catchAsync(async (req, res, next) => {
     const { name, modules } = req.body
     const roleId = req.params.id
 
-    const unallowedModules = modules?.filter(
-        (module) => !allowedModules.includes(module)
-    )
-
-    if (unallowedModules?.length > 0) {
-        return next(
-            new AppError(
-                `The following modules are not allowed: ${unallowedModules.join(
-                    ', '
-                )}`,
-                400
-            )
-        )
-    }
-
     // Perform the update operation
     const doc = await Role.findByIdAndUpdate(
         roleId,
