@@ -62,6 +62,7 @@ const productSchema = new mongoose.Schema(
         price: {
             type: Number,
             min: [0, 'Price cannot be negative'],
+            required: [true, 'Please provide the unit price'],
         },
         discount: {
             type: Number,
@@ -114,14 +115,8 @@ const productSchema = new mongoose.Schema(
         ],
         attributes: [
             {
-                attribute: {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Attribute',
-                },
-                price: {
-                    type: Number,
-                    min: [0, 'Attribute price cannot be negative'],
-                },
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Attribute',
             },
         ],
         thumbnail: String,

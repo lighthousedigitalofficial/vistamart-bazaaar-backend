@@ -7,14 +7,12 @@ import AppError from '../../utils/appError.js'
 
 import Product from '../../models/sellers/productModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
-import Wishlist from '../../models/users/wishlistModel.js'
 import Brand from '../../models/admin/brandModel.js'
 import Category from '../../models/admin/categories/categoryModel.js'
 import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import Employee from '../../models/admin/employeeModel.js'
 import { deleteKeysByPattern } from '../../services/redisService.js'
-import APIFeatures from '../../utils/apiFeatures.js'
 
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
@@ -42,7 +40,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         colors,
         thumbnail,
         images,
-        attributePrices = [],
+        attributes,
         videoLink,
         metaTitle,
         metaDescription,
@@ -64,19 +62,9 @@ export const createProduct = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid userType provided', 400))
     }
 
-    if (taxIncluded) {
-        price += taxAmount
-    }
-
-    let updatedDiscountAmount = discountAmount
-
-    if (discountType === 'flat') {
-        // If the discount type is flat, use the given discountAmount
-        updatedDiscountAmount = discountAmount
-    } else if (discountType === 'percent') {
-        // If the discount type is percent, calculate the discount percentage
-        updatedDiscountAmount = (price * discount) / 100
-    }
+    // Calculate updated discount amount
+    discountAmount =
+        discountType === 'percent' ? (price * discount) / 100 : discountAmount
 
     let productData = {
         name,
@@ -92,7 +80,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         price,
         discount,
         discountType,
-        discountAmount: updatedDiscountAmount,
+        discountAmount,
         taxAmount,
         taxIncluded,
         minimumOrderQty,
@@ -101,7 +89,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         thumbnail,
         images,
         colors,
-        attributes: attributePrices,
+        attributes,
         videoLink,
         userId,
         userType,
@@ -127,35 +115,6 @@ export const createProduct = catchAsync(async (req, res, next) => {
     res.status(201).json({
         status: 'success',
         doc: newProduct,
-    })
-})
-
-export const updateProductImages = catchAsync(async (req, res) => {
-    const productId = req.params.id
-    const product = await Product.findById(productId)
-
-    // Handle case where the document was not found
-    if (!product) {
-        return next(new AppError('No product found with that ID', 404))
-    }
-
-    product.images = req.files ? req.files.map((file) => file.path) : []
-    await product.save()
-
-    const cacheKeyOne = getCacheKey(Product, req.params.id)
-
-    // delete pervious document data
-    await redisClient.del(cacheKeyOne)
-    // updated the cache with new data
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
-
-    // Update cache
-    const cacheKey = getCacheKey(Product, '', req.query)
-    await redisClient.del(cacheKey)
-
-    res.status(200).json({
-        status: 'success',
-        doc: product,
     })
 })
 
@@ -238,6 +197,63 @@ export const updateProductImages = catchAsync(async (req, res) => {
 // })
 
 export const getAllProducts = getAll(Product)
+
+// Update product details
+export const updateProduct = catchAsync(async (req, res, next) => {
+    const { id: productId } = req.params
+
+    if (!productId) {
+        return next(new AppError('Product ID is required', 400))
+    }
+
+    // Initialize the fields for update based on provided inputs
+    const updateFields = {}
+
+    // Populate `updateFields` only with provided fields
+    for (const key of Object.keys(req.body)) {
+        if (req.body[key] !== undefined) {
+            updateFields[key] = req.body[key]
+        }
+    }
+
+    // Conditionally calculate discount if required fields are provided
+    if (
+        updateFields.price !== undefined &&
+        updateFields.discount !== undefined &&
+        updateFields.discountType
+    ) {
+        updateFields.discountAmount =
+            updateFields.discountType === 'percent'
+                ? (updateFields.price * updateFields.discount) / 100
+                : updateFields.discountAmount
+    }
+
+    // Set slug only if `name` is provided
+    if (updateFields.name) {
+        updateFields.slug = slugify(updateFields.name, { lower: true })
+    }
+
+    // Perform update with Mongoose and handle response
+    const updatedProduct = await Product.findByIdAndUpdate(
+        productId,
+        updateFields,
+        {
+            new: true,
+            runValidators: true,
+        }
+    )
+
+    if (!updatedProduct) {
+        return next(new AppError('No product found with that ID', 404))
+    }
+
+    await deleteKeysByPattern('Product')
+
+    res.status(200).json({
+        status: 'success',
+        doc: updatedProduct,
+    })
+})
 
 export const getProductById = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey('Product', req.params.id)
@@ -393,144 +409,3 @@ export const updateProductFeaturedStatus = catchAsync(
         })
     }
 )
-
-// Mark product as sold
-export const sellProduct = catchAsync(async (req, res) => {
-    const productId = req.params.id
-
-    const product = await Product.findById(productId)
-
-    if (!product) {
-        return next(new AppError('No product found with that ID.', 404))
-    }
-
-    product.sell += 1
-
-    await product.save()
-
-    // delete all document caches related to this model
-    await deleteKeysByPattern('Product')
-
-    res.status(200).json({
-        status: 'success',
-        doc: product,
-    })
-})
-
-// Update product details
-export const updateProduct = catchAsync(async (req, res, next) => {
-    const productId = req.params.id
-
-    const {
-        name,
-        description,
-        category,
-        subCategory,
-        subSubCategory,
-        brand,
-        productType,
-        digitalProductType,
-        sku,
-        unit,
-        tags,
-        price, // Base price or default price if no attribute price
-        discount,
-        discountType,
-        discountAmount,
-        taxAmount,
-        taxIncluded,
-        minimumOrderQty,
-        shippingCost,
-        stock,
-        isFeatured,
-        colors,
-        attributes, // Assuming attributes like 'small', 'medium', 'large'
-        size,
-        videoLink,
-        userId,
-        userType,
-    } = req.body
-
-    // Initialize discount calculation
-    let updatedDiscountAmount = discountAmount
-
-    // Calculate discount if needed
-    if (discountType === 'flat') {
-        updatedDiscountAmount = discountAmount
-    } else if (discountType === 'percent') {
-        updatedDiscountAmount = (price * discount) / 100
-    }
-
-    // Fetch prices based on selected attributes (e.g., size or color)
-    let finalPrice = price // Start with the base price
-
-    if (attributes && attributes.length > 0) {
-        const attributePricePromises = attributes.map(async (attributeId) => {
-            // Fetch attribute from the Attribute model (from another DB)
-            const attribute = await adminDbConnection
-                .model('Attribute')
-                .findById(attributeId)
-            if (!attribute) {
-                return next(new AppError('Invalid attribute selected', 400))
-            }
-            // Assume attribute has a `priceModifier` field to adjust the price
-
-            return attribute.priceModifier || 0
-        })
-
-        const attributePriceModifiers = await Promise.all(
-            attributePricePromises
-        )
-
-        // Sum all the attribute-based price modifiers to get the final price
-        finalPrice =
-            price +
-            attributePriceModifiers.reduce(
-                (total, modifier) => total + modifier,
-                0
-            )
-    }
-
-    // Update the product with new values and calculated final price
-    const updatedProduct = await Product.findByIdAndUpdate(
-        productId,
-        {
-            name,
-            description,
-            category,
-            subCategory,
-            subSubCategory,
-            brand,
-            productType,
-            digitalProductType,
-            sku,
-            unit,
-            tags,
-            price: finalPrice, // Set the updated final price
-            discount,
-            discountType,
-            discountAmount: updatedDiscountAmount,
-            taxAmount,
-            taxIncluded,
-            minimumOrderQty,
-            shippingCost,
-            stock,
-            isFeatured,
-            colors: [colors],
-            attributes: [attributes],
-            size,
-            videoLink,
-            userId,
-            userType,
-            slug: slugify(name, { lower: true }),
-        },
-        { new: true }
-    )
-
-    await deleteKeysByPattern('Product')
-
-    res.status(200).json({
-        status: 'success',
-        doc: updatedProduct,
-    })
-})
