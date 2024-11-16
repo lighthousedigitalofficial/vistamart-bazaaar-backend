@@ -2,7 +2,6 @@ import Employee from '../../models/admin/employeeModel.js'
 import AppError from '../../utils/appError.js'
 import catchAsync from '../../utils/catchAsync.js'
 import { createSendToken } from '../authController.js'
-
 import {
     createOne,
     deleteOne,
@@ -15,8 +14,6 @@ import { deleteKeysByPattern } from '../../services/redisService.js'
 
 export const employeeLogin = catchAsync(async (req, res, next) => {
     const { email, password } = req.body
-
-    console.log(req.body)
 
     // 1) Check if email and password exists
     if (!email || !password) {

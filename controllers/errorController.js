@@ -1,5 +1,5 @@
+import keys from '../config/keys.js'
 import AppError from './../utils/appError.js'
-import keys from './../config/keys.js'
 
 const handleCastErrorDB = (err) => {
     const message = `Invalid ${err.path}: ${err.value}.`

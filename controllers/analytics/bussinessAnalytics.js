@@ -6,70 +6,8 @@ import Order from '../../models/transactions/orderModel.js'
 import { getCacheKey } from '../../utils/helpers.js'
 import redisClient from '../../config/redisConfig.js'
 
-// export const getAdminBusinessAnalytics = catchAsync(async (req, res, next) => {
-//     //Get total orders count
-//     const totalOrders = await Order.countDocuments()
-
-//     // Get total products count
-//     const totalProducts = await Product.countDocuments()
-
-//     // Get total customers count
-//     const totalCustomers = await Customer.countDocuments()
-
-//     // Get total stores (vendors) count
-//     const totalStores = await Vendor.countDocuments()
-
-//     // Get order statuses count
-//     const pendingOrders = await Order.countDocuments({ status: 'pending' })
-//     const confirmedOrders = await Order.countDocuments({
-//         status: 'confirmed',
-//     })
-//     const packagingOrders = await Order.countDocuments({
-//         status: 'packaging',
-//     })
-//     const outForDeliveryOrders = await Order.countDocuments({
-//         status: 'out_for_delivery',
-//     })
-//     const deliveredOrders = await Order.countDocuments({
-//         status: 'delivered',
-//     })
-//     const failedToDeliverOrders = await Order.countDocuments({
-//         status: 'failed_to_deliver',
-//     })
-//     const returnedOrders = await Order.countDocuments({
-//         status: 'returned',
-//     })
-//     const canceledOrders = await Order.countDocuments({
-//         status: 'canceled',
-//     })
-
-//     const doc = {
-//         totalOrders,
-//         totalProducts,
-//         totalCustomers,
-//         totalStores,
-//         ordersByStatus: {
-//             pending: pendingOrders,
-//             confirmed: confirmedOrders,
-//             packaging: packagingOrders,
-//             out_for_delivery: outForDeliveryOrders,
-//             delivered: deliveredOrders,
-//             failed_to_deliver: failedToDeliverOrders,
-//             returned: returnedOrders,
-//             canceled: canceledOrders,
-//         },
-//     }
-
-//     // Send the response
-//     res.status(200).json({
-//         status: 'success',
-//         cached: false,
-//         doc,
-//     })
-// })
-
 export const getAdminBusinessAnalytics = catchAsync(async (req, res, next) => {
-    const cacheKey = 'adminBusinessAnalytics' // Use a descriptive and unique key for caching
+    const cacheKey = 'adminBusinessAnalytics'
 
     // Check cache first
     const cachedDoc = await redisClient.get(cacheKey)
