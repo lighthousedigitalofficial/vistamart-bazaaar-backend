@@ -167,19 +167,6 @@ export const deleteOrder = deleteOne(Order)
 export const getOrderById = catchAsync(async (req, res, next) => {
     const { id } = req.params
 
-    const cacheKey = getCacheKey('Order', req.params.id)
-
-    // Check cache first
-    const cachedDoc = await redisClient.get(cacheKey)
-
-    if (cachedDoc) {
-        return res.status(200).json({
-            status: 'success',
-            cached: true,
-            doc: JSON.parse(cachedDoc),
-        })
-    }
-
     // Fetch the order by ID
     const order = await Order.findById(id).lean()
 
@@ -187,54 +174,42 @@ export const getOrderById = catchAsync(async (req, res, next) => {
         return next(new AppError('No order found with that ID', 404))
     }
 
-    console.log(order)
+    // Fetch related data from the respective models
+    const products = await Product.find({ _id: { $in: order.products } }).lean()
+    const vendors = await Vendor.find({ _id: { $in: order.vendors } }).lean()
+    const customer = await Customer.findById(order.customer).lean()
 
-    // Extract product IDs correctly based on the structure
-    const productIds = order.products.map((p) => p.product)
-    const vendorIds = order.vendors // Assuming vendors is an array of vendor IDs
-    const customerId = order.customer
-
-    // Fetch related data
-    const [products, vendors, customer] = await Promise.all([
-        Product.find({ _id: { $in: productIds } }).lean(),
-        Vendor.find({ _id: { $in: vendorIds } }).lean(),
-        Customer.findById(customerId).lean(),
-    ])
-
-    // Map products and vendors by their IDs
+    // Map products and vendors by their IDs for efficient lookup
     const productsMap = products.reduce((map, product) => {
-        map[product._id.toString()] = product
+        map[product._id] = product
         return map
     }, {})
 
     const vendorsMap = vendors.reduce((map, vendor) => {
-        map[vendor._id.toString()] = vendor
+        map[vendor._id] = vendor
         return map
     }, {})
 
-    // Map order products and vendors to full documents
-    const orderProducts = order.products.map((p) => ({
-        ...p,
-        product: productsMap[p.product.toString()] || null,
-    }))
-
-    const orderVendors = order.vendors.map(
-        (vendorId) => vendorsMap[vendorId.toString()] || null
+    // Map the products array to their corresponding product documents
+    const orderProducts = order.products.map(
+        (productId) => productsMap[productId] || null
     )
 
-    // Construct the final order details
-    const orderDetails = {
-        ...order,
-        customer,
-        products: orderProducts,
-        vendors: orderVendors,
-    }
+    // Map the vendors array to their corresponding vendor documents
+    const orderVendors = order.vendors.map(
+        (vendorId) => vendorsMap[vendorId] || null
+    )
 
-    await redisClient.setEx(cacheKey, 3600, JSON.stringify(orderDetails))
+    // Add full details of customer, products, and vendors to the order
+    const orderDetails = {
+        ...order, // Spread the existing order fields
+        customer, // Add the customer object
+        products: orderProducts, // Add the full product objects
+        vendors: orderVendors, // Add the full vendor objects
+    }
 
     res.status(200).json({
         status: 'success',
-        cached: false,
         doc: orderDetails,
     })
 })

@@ -3,8 +3,8 @@ import { transactionDbConnection } from '../../config/dbConnections.js'
 import AppError from '../../utils/appError.js'
 import Product from '../sellers/productModel.js'
 import Vendor from '../sellers/vendorModel.js'
-import Customer from '../users/customerModel.js'
 import { checkReferenceId } from '../../utils/helpers.js'
+import Customer from '../users/customerModel.js'
 
 const orderSchema = new mongoose.Schema(
     {
@@ -30,10 +30,6 @@ const orderSchema = new mongoose.Schema(
                     ref: 'Product',
                     required: [true, 'Please provide product.'],
                 },
-                // price: {
-                //     type: Number,
-                //     required: [true, 'Please provide product price.'],
-                // },
                 quantity: {
                     type: Number,
                     required: [true, 'Please provide product quantity.'],

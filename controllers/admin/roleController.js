@@ -6,36 +6,8 @@ import AppError from '../../utils/appError.js'
 import catchAsync from '../../utils/catchAsync.js'
 import { deleteKeysByPattern } from '../../services/redisService.js'
 
-// const allowedModules = [
-//     'user-management',
-//     'vendor-management',
-//     'employee-management',
-//     'system-settings',
-//     'product-management',
-//     'order-management',
-//     'reports-and-analysis',
-//     'promotion-management',
-//     'help-and-support',
-// ]
-
 export const createRole = catchAsync(async (req, res, next) => {
     const { name, modules } = req.body
-
-    // // Assuming `modules` is an array of requested modules coming from the client
-    // const unallowedModules = modules?.filter(
-    //     (module) => !allowedModules.includes(module)
-    // )
-
-    // if (unallowedModules?.length > 0) {
-    //     return next(
-    //         new AppError(
-    //             `The following modules are not allowed: ${unallowedModules.join(
-    //                 ', '
-    //             )}`,
-    //             400
-    //         )
-    //     )
-    // }
 
     const doc = await Role.create({ name, modules })
 

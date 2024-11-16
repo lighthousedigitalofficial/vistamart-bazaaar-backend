@@ -7,8 +7,6 @@ import { protect } from '../../middleware/authMiddleware.js'
 import { restrictTo } from '../../middleware/authMiddleware.js'
 const router = express.Router()
 
-// Route to get business analytics data
-
 // Route to calculate and retrieve admin wallet data
 router.get(
     '/',
