@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk'
 import { v4 as uuidv4 } from 'uuid'
 
-import config from '../config/index.js'
+import config from '../config/keys.js'
 import catchAsync from '../utils/catchAsync.js'
 import AppError from '../utils/appError.js'
 
@@ -37,8 +37,6 @@ export const getImageUrl = catchAsync(async (req, res, next) => {
 
     const url = s3.getSignedUrl('putObject', params)
 
-    console.log(url)
-
     res.status(200).send({ key, url })
 })
 
@@ -68,7 +66,7 @@ export const getProductImageUrl = catchAsync(async (req, res, next) => {
 })
 
 export const deleteImage = catchAsync(async (req, res, next) => {
-    const { key } = req.params // Key of the image in S3 bucket
+    const { key } = req.body // Key of the image in S3 bucket
 
     if (!key) {
         return next(new AppError('Image key is required', 400))
@@ -85,7 +83,7 @@ export const deleteImage = catchAsync(async (req, res, next) => {
 })
 
 export const updateImage = catchAsync(async (req, res, next) => {
-    const { key } = req.params // Key of the image to update
+    const { key } = req.body // Key of the image to update
     const fileType = req.query.fileType || 'jpeg'
 
     // Validate file type

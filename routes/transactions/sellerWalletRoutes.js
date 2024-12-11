@@ -1,27 +1,27 @@
 import express from 'express'
 import {
-    calculateSellerWallet,
+    createSellerWallet,
+    deleteSellerWalletById,
     getSellerWalletById,
+    getSellerWallets,
+    updateSellerWalletById,
 } from '../../controllers/transactions/sellerWalletController.js'
 import { protect } from '../../middleware/authMiddleware.js'
 import { restrictTo } from '../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// Route to calculate the seller wallet (GET)
-router.get(
-    '/calculate',
-    //   protect,
-    //   restrictTo("vendor", "admin"),
-    calculateSellerWallet
-)
+// router.get('/calculate', protect, calculateSellerWallet)
 
-// Route to get a specific seller wallet by seller ID (GET)
-router.get(
-    '/:sellerId',
-    protect,
-    restrictTo('vendor', 'admin'),
-    getSellerWalletById
-)
+router
+    .route('/')
+    .post(protect, createSellerWallet)
+    .get(protect, getSellerWallets)
+
+router
+    .route('/:id')
+    .get(protect, getSellerWalletById)
+    .put(protect, updateSellerWalletById)
+    .delete(protect, deleteSellerWalletById)
 
 export default router

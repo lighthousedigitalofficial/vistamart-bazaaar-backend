@@ -1,29 +1,24 @@
-import express from "express";
+import express from 'express'
 import {
-  createCoupon,
-  getAllCoupons,
-  getCouponById,
-  updateCoupon,
-  updateCouponStatus,
-  deleteCoupon,
-} from "../../controllers/sellers/couponController.js";
-import { protect, restrictTo } from "../../middleware/authMiddleware.js";
+    createCoupon,
+    getAllCoupons,
+    getCouponById,
+    updateCoupon,
+    updateCouponStatus,
+    deleteCoupon,
+} from '../../controllers/sellers/couponController.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
 
-const router = express.Router();
+const router = express.Router()
 
-router
-  .route("/")
-  .post(protect, restrictTo("admin", "vendor"), createCoupon)
-
-  // .get(getAllCoupons);
-  .get(protect, getAllCoupons);
+router.route('/').post(protect, createCoupon).get(protect, getAllCoupons)
 
 router
-  .route("/:id")
-  .get(getCouponById)
-  .put(protect, restrictTo("admin"), updateCoupon)
-  .delete(protect, restrictTo("admin"), deleteCoupon);
+    .route('/:id')
+    .get(getCouponById)
+    .put(protect, updateCoupon)
+    .delete(protect, deleteCoupon)
 
-router.put("/status/:id", protect, restrictTo("admin"), updateCouponStatus);
+router.put('/status/:id', protect, updateCouponStatus)
 
-export default router;
+export default router

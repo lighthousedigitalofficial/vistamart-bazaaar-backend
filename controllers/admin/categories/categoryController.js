@@ -1,10 +1,6 @@
 import Category from '../../../models/admin/categories/categoryModel.js'
 import slugify from 'slugify'
-import {
-    deleteOne,
-    updateOne,
-    updateStatus,
-} from '../../../factory/handleFactory.js'
+import { updateOne, updateStatus } from '../../../factory/handleFactory.js'
 
 import catchAsync from '../../../utils/catchAsync.js'
 import { getCacheKey } from '../../../utils/helpers.js'
@@ -16,6 +12,7 @@ import Product from './../../../models/sellers/productModel.js'
 import Order from '../../../models/transactions/orderModel.js'
 import APIFeatures from '../../../utils/apiFeatures.js'
 import AppError from '../../../utils/appError.js'
+import { deleteKeysByPattern } from '../../../services/redisService.js'
 
 // Create a new category
 export const createCategory = catchAsync(async (req, res) => {
@@ -33,34 +30,17 @@ export const createCategory = catchAsync(async (req, res) => {
         })
     }
 
+    await deleteKeysByPattern('Category')
+    await deleteKeysByPattern('Search')
+
     const cacheKeyOne = getCacheKey('Category', category?._id)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(category))
-
-    // delete all documents caches related to this model
-    const cacheKey = getCacheKey('Category', '', req.query)
-    await redisClient.del(cacheKey)
 
     res.status(201).json({
         status: 'success',
         doc: category,
     })
 })
-
-// export const getCategories = getAll(Category, {
-//     path: [
-//         'productCount',
-//         {
-//             path: 'subCategories',
-//             select: '_id name slug',
-//         },
-//         {
-//             path: 'subSubCategories',
-//             select: '_id name slug',
-//         },
-//     ],
-// })
-
-// Get a single category by ID
 
 export const getCategories = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey('Category', '', req.query)
@@ -95,8 +75,11 @@ export const getCategories = catchAsync(async (req, res, next) => {
         categories.map(async (category) => {
             // Step 1: Fetch all products for the category
             const products = await Product.find({
-                category: category._id, // Match products by the category ID
-            }).lean()
+                category: category._id,
+                status: 'approved',
+            })
+                .select('_id')
+                .lean()
 
             const totalProducts = products?.length || 0
 
@@ -111,7 +94,6 @@ export const getCategories = catchAsync(async (req, res, next) => {
             // Step 4: Add products and totalOrders to the category object
             return {
                 ...category,
-                products, // Array of products in this category
                 totalOrders, // Total number of orders for these products
                 totalProducts,
             }
@@ -157,8 +139,11 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
 
     // Step 1: Fetch total products for the categor
     const products = await Product.find({
-        category: categoryId, // Match products with the given categor ID
-    }).lean()
+        category: categoryId,
+        status: 'approved',
+    })
+        .select('_id')
+        .lean()
 
     const totalProducts = products?.length || 0
 
@@ -172,7 +157,6 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
-        products,
         totalProducts,
         totalOrders,
     }
@@ -189,17 +173,32 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
 
 // Update a category by ID
 export const updateCategory = updateOne(Category)
-// Delete a category by ID
-// Define related models and their foreign keys
-const relatedModels = [
-    { model: SubCategory, foreignKey: 'mainCategory' },
-    { model: SubSubCategory, foreignKey: 'mainCategory' },
-    // { model: Product, foreignKey: 'category' },
-]
 
-// Delete a category by ID
-// export const deleteCategory = deleteOneWithTransaction(Category, relatedModels);
-export const deleteCategory = deleteOne(Category)
+// Delete Category and associated Products
+export const deleteCategory = catchAsync(async (req, res, next) => {
+    const category = await Category.findByIdAndDelete(req.params.id).exec()
+
+    // Handle case where the category was not found
+    if (!category) {
+        return next(new AppError(`No category found with that ID`, 404))
+    }
+
+    // Delete all data associated with this category
+    await Product.deleteMany({ category: req.params.id }).exec()
+    await SubCategory.deleteMany({ mainCategory: req.params.id }).exec()
+    await SubSubCategory.deleteMany({ mainCategory: req.params.id }).exec()
+
+    await deleteKeysByPattern('Product')
+    await deleteKeysByPattern('Category')
+    await deleteKeysByPattern('SubCategory')
+    await deleteKeysByPattern('SubSubCategory')
+    await deleteKeysByPattern('Search')
+
+    res.status(204).json({
+        status: 'success',
+        doc: null,
+    })
+})
 
 // Get category by slug
 export const getCategoryBySlug = catchAsync(async (req, res, next) => {
@@ -228,8 +227,11 @@ export const getCategoryBySlug = catchAsync(async (req, res, next) => {
 
     // Step 1: Fetch total products for the categor
     const products = await Product.find({
-        category: categoryId, // Match products with the given categor ID
-    }).lean()
+        category: categoryId,
+        status: 'approved',
+    })
+        .select('_id')
+        .lean()
 
     const totalProducts = products?.length || 0
 
@@ -243,7 +245,6 @@ export const getCategoryBySlug = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
-        products,
         totalProducts,
         totalOrders,
     }

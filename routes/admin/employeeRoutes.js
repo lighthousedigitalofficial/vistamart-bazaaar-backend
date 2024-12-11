@@ -8,37 +8,32 @@ import {
     deleteEmployee,
     updateEmployeeStatus,
     employeeLogin,
+    updateEmployeePassword,
+    forgotEmployeePassword,
+    resetEmployeePassword,
 } from '../../controllers/admin/employeeController.js'
 
-import { logout, updatePassword } from '../../controllers/authController.js'
+import { logout } from '../../controllers/authController.js'
 
-import {
-    protect,
-    restrictTo,
-    selectModelByRole,
-} from '../../middleware/authMiddleware.js'
-// import { validateSchema } from '../middleware/validationMiddleware.js'
-// import EmployeeValidationSchema from './../validations/EmployeeValidator.js'
-// import { loginLimiter } from '../utils/helpers.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
 
 const router = express.Router()
 
 router.post('/login', employeeLogin)
 router.post('/logout', protect, logout)
 
-router.put('/update-password', protect, selectModelByRole, updatePassword)
+router.put('/update-password', protect, updateEmployeePassword)
+router.post('/forgot-password', forgotEmployeePassword)
+router.put('/reset-password/:token', resetEmployeePassword)
 
-router
-    .route('/')
-    .post(protect, restrictTo('admin'), createEmployee)
-    .get(protect, restrictTo('admin'), getEmployees)
+router.route('/').post(protect, createEmployee).get(protect, getEmployees)
 
 router
     .route('/:id')
-    .get(protect, restrictTo('admin'), getEmployeeById)
-    .delete(protect, restrictTo('admin'), deleteEmployee)
-    .put(protect, restrictTo('admin'), updateEmployee)
+    .get(protect, getEmployeeById)
+    .put(protect, updateEmployee)
+    .delete(protect, deleteEmployee)
 
-router.put('/status/:id', protect, restrictTo('admin'), updateEmployeeStatus)
+router.put('/status/:id', protect, updateEmployeeStatus)
 
 export default router

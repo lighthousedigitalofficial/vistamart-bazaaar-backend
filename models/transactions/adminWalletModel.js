@@ -1,33 +1,46 @@
-import mongoose from "mongoose";
-import { transactionDbConnection } from "../../config/dbConnections.js";
+import mongoose from 'mongoose'
+import { transactionDbConnection } from '../../config/dbConnections.js'
 
 const adminWalletSchema = new mongoose.Schema(
-  {
-    ownerId: {
-      type: String,
+    {
+        InhouseEarning: {
+            type: Number,
+            default: 0,
+        },
+        commissionEarned: {
+            type: Number,
+            default: 0,
+        },
+        deliveryChargeEarned: {
+            type: Number,
+            default: 0,
+        },
+        totalTaxCollected: {
+            type: Number,
+            default: 0,
+        },
+        pendingAmount: {
+            type: Number,
+            default: 0,
+        },
+        vendor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Vendor',
+            required: [true, 'Please provide vendor.'],
+        },
     },
-    userType: {
-      type: String,
-    },
-    InhouseEarning: {
-      type: String,
-    },
-    commissionEarned: {
-      type: String,
-    },
-    deliveryChargeEarned: {
-      type: String,
-    },
-    totalTaxCollected: {
-      type: String,
-    },
-    pendingAmount: {
-      type: String,
-    },
-  },
-  { timestamps: true }
-);
+    { timestamps: true }
+)
 
-const Wallet = transactionDbConnection.model("AdminWallet", adminWalletSchema);
+const AdminWallet = transactionDbConnection.model(
+    'AdminWallet',
+    adminWalletSchema
+)
 
-export default Wallet;
+AdminWallet.createIndexes({
+    commissionEarned: 1,
+    InhouseEarning: 1,
+    deliveryChargeEarned: 1,
+})
+
+export default AdminWallet

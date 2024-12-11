@@ -1,39 +1,28 @@
-import express from "express";
+import express from 'express'
 import {
-  createOrder,
-  getAllOrders,
-  getOrderById,
-  updateOrderStatus,
-  deleteOrder,
-  getOrderByCustomer,
-} from "../../controllers/transactions/orderControllers.js";
-import { validateSchema } from "../../middleware/validationMiddleware.js";
-import orderValidationSchema from "../../validations/admin/transactions/orderValidator.js";
-import { protect } from "../../middleware/authMiddleware.js";
-import { restrictTo } from "../../middleware/authMiddleware.js";
+    createOrder,
+    getAllOrders,
+    getOrderById,
+    updateOrderStatus,
+    deleteOrder,
+    getOrderByCustomer,
+    getOrderStatus,
+} from '../../controllers/transactions/orderControllers.js'
+import { validateSchema } from '../../middleware/validationMiddleware.js'
+import orderValidationSchema from '../../validations/admin/transactions/orderValidator.js'
+import { protect } from '../../middleware/authMiddleware.js'
+import { restrictTo } from '../../middleware/authMiddleware.js'
 
-const router = express.Router();
+const router = express.Router()
 
-router
-  .route("/")
-  .post(
-    protect,
-    // validateSchema(orderValidationSchema),
-    createOrder
-  )
-  .get(getAllOrders);
-// .get(protect, restrictTo("admin", "vendor"), getAllOrders);
+router.route('/').post(protect, createOrder).get(protect, getAllOrders)
 
-router.get("/customer/:customerId", getOrderByCustomer);
+router.get('/customer/:customerId', getOrderByCustomer)
 
-router
-  .route("/:id")
-  .get(protect, getOrderById)
-  .delete(protect, restrictTo("admin", "vendor"), deleteOrder);
+router.route('/:id').get(protect, getOrderById).delete(protect, deleteOrder)
 
+router.get('/track-order/:orderId', getOrderStatus)
 
-router
-    .route('/status/:id')
-    .put(protect, restrictTo('admin', 'vendor'), updateOrderStatus)
+router.route('/status/:id').put(protect, updateOrderStatus)
 
-export default router;
+export default router

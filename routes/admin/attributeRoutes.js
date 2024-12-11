@@ -16,7 +16,7 @@ router
     .route('/')
     .post(
         protect,
-        restrictTo('admin'),
+
         validateSchema(attributeValidationSchema),
         createAttribute
     )
@@ -24,7 +24,7 @@ router
 router
     .route('/:id')
     .get(getAttributeById)
-    .put(protect, restrictTo('admin'), updateAttribute)
-    .delete(protect, restrictTo('admin'), deleteAttribute)
+    .put(protect, updateAttribute)
+    .delete(protect, deleteAttribute)
 
 export default router

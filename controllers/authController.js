@@ -7,7 +7,10 @@ import redisClient from '../config/redisConfig.js'
 import catchAsync from '../utils/catchAsync.js'
 import AppError from './../utils/appError.js'
 import { loginService } from '../services/authService.js'
-import { removeRefreshToken } from '../services/redisService.js'
+import {
+    deleteKeysByPattern,
+    removeRefreshToken,
+} from '../services/redisService.js'
 
 import {
     createPasswordResetConfirmationMessage,
@@ -16,6 +19,8 @@ import {
 } from '../utils/helpers.js'
 import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
+import OTP from '../models/users/otpModel.js'
+import * as otpService from './../services/otpService.js'
 
 export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
@@ -39,6 +44,8 @@ export const createSendToken = catchAsync(async (user, statusCode, res) => {
 
     // do not show the password to client side
     user.password = undefined
+    user.verified = undefined
+    user.phoneNumber = undefined
 
     // Store refresh token in an HTTP-only cookie
     res.cookie('jwt', accessToken, cookieOptions)
@@ -70,8 +77,6 @@ export const login = catchAsync(async (req, res, next) => {
 })
 
 export const signup = catchAsync(async (req, res, next) => {
-    const { filteredData } = checkFields(User, req, next)
-
     const { name, email, password } = filteredData
 
     const newUser = await User.create({
@@ -79,8 +84,6 @@ export const signup = catchAsync(async (req, res, next) => {
         email,
         password,
     })
-
-    console.log(newUser)
 
     // delete pervious cache
     const cacheKey = getCacheKey(User, '', req.query)
@@ -122,10 +125,6 @@ export const loginCustomer = catchAsync(async (req, res, next) => {
 })
 
 export const signupCustomer = catchAsync(async (req, res, next) => {
-    // const data = checkFields(Customer, req, next)
-
-    console.log(req.body)
-
     const { firstName, lastName, email, password } = req.body
 
     const newCustomer = new Customer({
@@ -137,11 +136,62 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
 
     await newCustomer.save()
 
-    // delete pervious cache
-    const cacheKey = getCacheKey(Customer, '', req.query)
-    await redisClient.del(cacheKey)
+    // 2. Generate OTP and save it in the OTP model
+    const { token, hash } = otpService.generateOTP()
+    await otpService.saveOTP(email, null, hash)
 
-    createSendToken(newCustomer, 201, res)
+    // 3. Send OTP to email for verification
+    await otpService.otpEmailSend(email, token)
+
+    // 4. Clear previous cache for customers
+    await deleteKeysByPattern('Customer')
+
+    // 5. Respond with success message
+    res.status(201).json({
+        status: 'success',
+        message: 'Please verify your account using the OTP sent to your email.',
+    })
+})
+
+export const verifyCustomerOTPViaEmail = catchAsync(async (req, res, next) => {
+    const { token, email } = req.body
+
+    // Fetch the latest OTP for this email
+    const otpEntry = await OTP.findOne({ email }).sort({ createdAt: -1 }).exec()
+
+    if (!otpEntry) {
+        return next(new AppError('No OTP found for this email', 404))
+    }
+
+    // Check if the OTP has expired
+    // 5-minute expiration
+    const isExpired = Date.now() - otpEntry.createdAt > 5 * 60 * 1000
+
+    if (isExpired) {
+        // Cleanup expired OTPs
+        await OTP.deleteMany({ email })
+
+        return next(new AppError('OTP has expired', 400))
+    }
+
+    // Validate OTP hash
+    const isValid = await otpService.validateOTP(token, otpEntry.hash)
+
+    if (!isValid) return next(new AppError('Invalid OTP provided', 400))
+
+    // OTP is valid; proceed with deletion and user verification
+    await OTP.deleteMany({ email })
+
+    await Customer.findOneAndUpdate(
+        { email },
+        { verified: true, status: 'active' },
+        { new: true }
+    ).exec()
+
+    res.status(200).json({
+        status: 'success',
+        message: 'OTP verified successfully.',
+    })
 })
 
 export const loginVendor = catchAsync(async (req, res, next) => {
@@ -190,10 +240,18 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
+        // const resetURL = `${process.env.DOMAIN_NAME}/auth/resetPassword/${resetToken}`
+
+        // const domainName = `${req.protocol}://${req.get('host')}`
+        // const resetURL = `${domainName}/auth/resetPassword/${resetToken}`
+
+        const resetURL = `https://vistamart.biz/auth/reset-password/${resetToken}`
 
         // Get the user's IP address
-        const ipAddress = req.ip
+        const ipAddress =
+            req.headers['x-forwarded-for']?.split(',')[0] ||
+            req.socket.remoteAddress
+
         const timestamp =
             new Date().toISOString().replace('T', ' ').substring(0, 16) + ' GMT'
 
@@ -212,7 +270,8 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
         res.status(200).json({
             status: 'success',
-            message: 'Token sent to email!',
+            message:
+                'Please check your email inbox for a link to complete the reset.',
         })
     } catch (err) {
         user.passwordResetToken = undefined
@@ -266,6 +325,8 @@ export const resetPassword = catchAsync(async (req, res, next) => {
     user.password = passwordNew
     user.passwordResetToken = undefined
     user.passwordResetExpires = undefined
+    user.passwordChangedAt = Date.now()
+
     await user.save()
 
     await sendEmail({
@@ -274,7 +335,17 @@ export const resetPassword = catchAsync(async (req, res, next) => {
         html: message,
     })
 
-    createSendToken(user, 200, res)
+    await removeRefreshToken(user._id.toString())
+
+    // Clear the refreshToken cookie on the client
+    res.clearCookie('jwt')
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Password reset successfully.',
+    })
+
+    // createSendToken(user, 200, res)
 })
 
 export const updatePassword = catchAsync(async (req, res, next) => {

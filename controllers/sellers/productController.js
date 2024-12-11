@@ -7,12 +7,14 @@ import AppError from '../../utils/appError.js'
 
 import Product from '../../models/sellers/productModel.js'
 import Vendor from '../../models/sellers/vendorModel.js'
-import Wishlist from '../../models/users/wishlistModel.js'
 import Brand from '../../models/admin/brandModel.js'
 import Category from '../../models/admin/categories/categoryModel.js'
 import ProductReview from '../../models/users/productReviewModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import Employee from '../../models/admin/employeeModel.js'
+import { deleteKeysByPattern } from '../../services/redisService.js'
+import APIFeatures from '../../utils/apiFeatures.js'
+import SubCategory from '../../models/admin/categories/subCategoryModel.js'
 
 // Create a new product
 export const createProduct = catchAsync(async (req, res, next) => {
@@ -40,7 +42,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         colors,
         thumbnail,
         images,
-        attributePrices = [],
+        attributes,
         videoLink,
         metaTitle,
         metaDescription,
@@ -62,21 +64,11 @@ export const createProduct = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid userType provided', 400))
     }
 
-    if (taxIncluded) {
-        price += taxAmount
-    }
+    // Calculate updated discount amount
+    discountAmount =
+        discountType === 'percent' ? (price * discount) / 100 : discountAmount
 
-    let updatedDiscountAmount = discountAmount
-
-    if (discountType === 'flat') {
-        // If the discount type is flat, use the given discountAmount
-        updatedDiscountAmount = discountAmount
-    } else if (discountType === 'percent') {
-        // If the discount type is percent, calculate the discount percentage
-        updatedDiscountAmount = (price * discount) / 100
-    }
-
-    const newProduct = new Product({
+    let productData = {
         name,
         description,
         category,
@@ -84,14 +76,13 @@ export const createProduct = catchAsync(async (req, res, next) => {
         subSubCategory,
         brand,
         productType,
-        digitalProductType,
         sku,
         unit,
         tags,
         price,
         discount,
         discountType,
-        discountAmount: updatedDiscountAmount,
+        discountAmount,
         taxAmount,
         taxIncluded,
         minimumOrderQty,
@@ -100,24 +91,42 @@ export const createProduct = catchAsync(async (req, res, next) => {
         thumbnail,
         images,
         colors,
-        attributes: attributePrices,
+        attributes,
         videoLink,
         userId,
         userType,
         metaTitle,
         metaDescription,
         slug: slugify(name, { lower: true }),
-    })
+    }
+
+    if (productType === 'digital') {
+        productData = {
+            ...productData,
+            digitalProductType,
+        }
+    }
+
+    const newProduct = new Product(productData)
 
     await newProduct.save()
 
-    const cacheKeyOne = getCacheKey('Product', newProduct._id)
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(newProduct))
+    // Increment the vendor's totalProducts count
+    const vendor = await Vendor.findById(userId)
 
-    const cacheKey = getCacheKey('Product', '', req.query)
-    const cacheSortKey = getCacheKey('Product', '', { sort: 'discount' })
-    await redisClient.del(cacheKey)
-    await redisClient.del(cacheSortKey)
+    if (!vendor) {
+        return next(new AppError('Vendor not found!', 404))
+    }
+
+    // Increment vendor products count when creating an product
+    await Vendor.findByIdAndUpdate(vendor, {
+        $inc: { totalProducts: 1 },
+    })
+
+    // delete all document caches related to this model
+    await deleteKeysByPattern('Product')
+    await deleteKeysByPattern('Search')
+    await deleteKeysByPattern('Vendor')
 
     res.status(201).json({
         status: 'success',
@@ -125,36 +134,323 @@ export const createProduct = catchAsync(async (req, res, next) => {
     })
 })
 
-export const updateProductImages = catchAsync(async (req, res) => {
-    const productId = req.params.id
-    const product = await Product.findById(productId)
+// export const getAllProducts = catchAsync(async (req, res, next) => {
+//     const cacheKey = getCacheKey('Product', '', req.query)
 
-    // Handle case where the document was not found
-    if (!product) {
-        return next(new AppError('No product found with that ID', 404))
+//     // Check cache first
+//     const cachedResults = await redisClient.get(cacheKey)
+//     if (cachedResults) {
+//         return res.status(200).json({
+//             ...JSON.parse(cachedResults),
+//             status: 'success',
+//             cached: true,
+//         })
+//     }
+
+//     const { sort, limit, page = 1, ...filters } = req.query
+//     const hasQueryOptions =
+//         sort || limit || page || Object.keys(filters).length > 0
+
+//     let totalDocs = 0
+//     let doc = []
+
+//     // Query Products (from primary database)
+//     const productQuery = Product.find(filters)
+//         .skip((page - 1) * limit)
+//         .limit(parseInt(limit, 10))
+//         .sort()
+
+//     doc = await productQuery.lean()
+//     totalDocs = await Product.countDocuments(filters)
+
+//     // Fetch related data from other databases (e.g., Vendor, Category, Brand)
+//     // Assuming you have connections to other databases set up
+//     const vendorIds = doc.map((product) => product.userId).filter(Boolean)
+//     const vendorData = await Vendor.find({
+//         _id: { $in: vendorIds },
+//     })
+//         .select('firstName lastName slug shopName address')
+//         .lean()
+
+//     const categoryIds = doc.map((product) => product.category).filter(Boolean)
+//     const categoryData = await Category.find({
+//         _id: { $in: categoryIds },
+//     })
+//         .select('name slug')
+//         .lean()
+
+//     const subCategoryIds = doc
+//         .map((product) => product.subCategory)
+//         .filter(Boolean) // Filter out undefined or null values
+//     const subCategoryData = await SubCategory.find({
+//         _id: { $in: subCategoryIds },
+//     })
+//         .select('name slug')
+//         .lean()
+
+//     const brandIds = doc.map((product) => product.brand).filter(Boolean)
+//     const brandData = await Brand.find({ _id: { $in: brandIds } })
+//         .select('name slug logo')
+//         .lean()
+
+//     // Fetch total orders related to the product
+//     const productIds = doc.map((product) => product._id).filter(Boolean)
+//     let totalOrders = await Order.countDocuments({
+//         'products.product': { $in: productIds },
+//     }).lean()
+
+//     // Merge related data into product results
+//     doc = doc.map((product) => {
+//         const vendor = vendorData?.find(
+//             (v) => v._id.toString() === product.userId?.toString() // Safeguard with optional chaining
+//         )
+//         const category = categoryData?.find(
+//             (c) => c._id.toString() === product.category?.toString() // Safeguard with optional chaining
+//         )
+//         const subCategory = subCategoryData?.find(
+//             (c) => c._id.toString() === product.subCategory?.toString() // Safeguard with optional chaining
+//         )
+//         const brand = brandData?.find(
+//             (b) => b._id.toString() === product.brand?.toString() // Safeguard with optional chaining
+//         )
+
+//         return {
+//             ...product,
+//             vendor: vendor || null, // Default to null if no match found
+//             category: category || null, // Default to null if no match found
+//             subCategory: subCategory || null, // Default to null if no match found
+//             brand: brand || null, // Default to null if no match found
+//             totalOrders: totalOrders || 0,
+//         }
+//     })
+
+//     // Pagination details
+//     const currentPage = Number(page)
+//     const limitNum = Number(limit)
+//     const totalPages = limitNum ? Math.ceil(totalDocs / limitNum) : 1
+
+//     const response = {
+//         status: 'success',
+//         cached: false,
+//         totalDocs,
+//         results: doc.length,
+//         currentPage,
+//         totalPages,
+//         doc,
+//     }
+
+//     // Cache the result
+//     await redisClient.setEx(cacheKey, 3600, JSON.stringify(response))
+
+//     res.status(200).send(response)
+// })
+
+export const getAllProducts = catchAsync(async (req, res, next) => {
+    const cacheKey = getCacheKey('Product', '', req.query)
+
+    // Check cache first
+    const cachedResults = await redisClient.get(cacheKey)
+    if (cachedResults) {
+        return res.status(200).json({
+            ...JSON.parse(cachedResults),
+            status: 'success',
+            cached: true,
+        })
     }
 
-    product.images = req.files ? req.files.map((file) => file.path) : []
-    await product.save()
+    const { sort, limit, page = 1, ...filters } = req.query
 
-    const cacheKeyOne = getCacheKey(Product, req.params.id)
+    // Apply query options (pagination, sorting, filters)
+    const hasQueryOptions =
+        sort || limit || page || Object.keys(filters).length > 0
+    let totalDocs = 0
+    let doc = []
 
-    // delete pervious document data
-    await redisClient.del(cacheKeyOne)
-    // updated the cache with new data
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(doc))
+    if (hasQueryOptions) {
+        const features = new APIFeatures(Product.find(), req.query)
+            .filter()
+            .sort()
+            .fieldsLimit()
 
-    // Update cache
-    const cacheKey = getCacheKey(Product, '', req.query)
-    await redisClient.del(cacheKey)
+        // Step 1: Get total document count
+        totalDocs = await features.query.clone().countDocuments()
+
+        // Step 2: Apply pagination and fetch data
+        features.paginate()
+        doc = await features.query.lean()
+    } else {
+        // Fetch all documents if no query options are applied
+        doc = await Product.find().lean()
+        totalDocs = doc.length
+    }
+
+    // Fetch related data (from different databases) using manual queries
+    const vendorIds = doc.map((product) => product.userId).filter(Boolean)
+    const vendorData = await Vendor.find({ _id: { $in: vendorIds } })
+        .select('firstName lastName slug shopName address')
+        .lean()
+
+    const categoryIds = doc.map((product) => product.category).filter(Boolean)
+    const categoryData = await Category.find({ _id: { $in: categoryIds } })
+        .select('name slug')
+        .lean()
+
+    const subCategoryIds = doc
+        .map((product) => product.subCategory)
+        .filter(Boolean)
+    const subCategoryData = await SubCategory.find({
+        _id: { $in: subCategoryIds },
+    })
+        .select('name slug')
+        .lean()
+
+    const brandIds = doc.map((product) => product.brand).filter(Boolean)
+    const brandData = await Brand.find({ _id: { $in: brandIds } })
+        .select('name slug logo')
+        .lean()
+
+    const productIds = doc.map((product) => product._id).filter(Boolean)
+    const totalOrders = await Order.countDocuments({
+        'products.product': { $in: productIds },
+    }).lean()
+
+    // Merge related data into the products
+    doc = doc.map((product) => {
+        const vendor = vendorData?.find(
+            (v) => v._id.toString() === product.userId?.toString()
+        )
+        const category = categoryData?.find(
+            (c) => c._id.toString() === product.category?.toString()
+        )
+        const subCategory = subCategoryData?.find(
+            (c) => c._id.toString() === product.subCategory?.toString()
+        )
+        const brand = brandData?.find(
+            (b) => b._id.toString() === product.brand?.toString()
+        )
+
+        return {
+            ...product,
+            vendor: vendor || null,
+            category: category || null,
+            subCategory: subCategory || null,
+            brand: brand || null,
+            totalOrders: totalOrders || 0,
+        }
+    })
+
+    // Pagination details
+    const currentPage = Number(page)
+    const limitNum = Number(limit)
+    const totalPages = limitNum ? Math.ceil(totalDocs / limitNum) : 1
+
+    const response = {
+        status: 'success',
+        cached: false,
+        totalDocs,
+        results: doc.length,
+        currentPage,
+        totalPages,
+        doc,
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(response))
+
+    res.status(200).send(response)
+})
+
+export const searchProducts = catchAsync(async (req, res, next) => {
+    const { query } = req.query
+
+    if (!query) {
+        res.status(304).json({
+            status: 'not-modified',
+            message: 'Search query is required',
+        })
+    }
+
+    // Use $text search for better performance with indexed search
+    // const products = await Product.find({
+    //     $text: { $search: search },
+    // })
+    //     .limit(20)
+    //     .select('name description')
+
+    // Use regex for a case-insensitive search
+    const products = await Product.find({
+        name: { $regex: query, $options: 'i' }, // case-insensitive search
+    })
+        .limit(10)
+        .select(
+            'name description slug thumbnail price discountAmount rating numOfReviews'
+        )
 
     res.status(200).json({
         status: 'success',
-        doc: product,
+        results: products.length,
+        doc: products,
     })
 })
 
-export const getAllProducts = getAll(Product)
+// Update product details
+export const updateProduct = catchAsync(async (req, res, next) => {
+    const { id: productId } = req.params
+
+    if (!productId) {
+        return next(new AppError('Product ID is required', 400))
+    }
+
+    // Initialize the fields for update based on provided inputs
+    const updateFields = {}
+
+    // Populate `updateFields` only with provided fields
+    for (const key of Object.keys(req.body)) {
+        if (req.body[key] !== undefined) {
+            updateFields[key] = req.body[key]
+        }
+    }
+
+    // Conditionally calculate discount if required fields are provided
+    if (
+        updateFields.price !== undefined &&
+        updateFields.discount !== undefined &&
+        updateFields.discountType
+    ) {
+        updateFields.discountAmount =
+            updateFields.discountType === 'percent'
+                ? (updateFields.price * updateFields.discount) / 100
+                : updateFields.discountAmount
+    }
+
+    // Set slug only if `name` is provided
+    if (updateFields.name) {
+        updateFields.slug = slugify(updateFields.name, { lower: true })
+    }
+
+    // Perform update with Mongoose and handle response
+    const updatedProduct = await Product.findByIdAndUpdate(
+        productId,
+        updateFields,
+        {
+            new: true,
+            runValidators: true,
+        }
+    )
+
+    if (!updatedProduct) {
+        return next(new AppError('No product found with that ID', 404))
+    }
+
+    await deleteKeysByPattern('Product')
+    await deleteKeysByPattern('Search')
+    await deleteKeysByPattern('Vendor')
+
+    res.status(200).json({
+        status: 'success',
+        doc: updatedProduct,
+    })
+})
 
 export const getProductById = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey('Product', req.params.id)
@@ -177,30 +473,46 @@ export const getProductById = catchAsync(async (req, res, next) => {
         return next(new AppError(`No Product found with that Id.`, 404))
     }
 
-    const category = await Category.findById(product.category).lean()
-    const brand = await Brand.findById(product.brand).lean()
+    // Fetch related data, with checks for undefined/null values
+    const category = product.category
+        ? await Category.findById(product.category).select('name slug').lean()
+        : null
+    const subCategory = product.subCategory
+        ? await SubCategory.findById(product.subCategory)
+              .select('name slug')
+              .lean()
+        : null
+    const brand = product.brand
+        ? await Brand.findById(product.brand).select('name logo slug').lean()
+        : null
+    const vendor = product.userId
+        ? await Vendor.findById(product.userId)
+              .select('firstName lastName slug shopName address')
+              .lean()
+        : null
 
+    // Fetch reviews for the product
     let productReviews = await ProductReview.find({
         product: product._id,
     }).lean()
 
-    let orders = await Order.find({
-        product: product._id,
+    // Fetch total orders related to the product
+    let totalOrders = await Order.countDocuments({
+        'products.product': product._id,
     }).lean()
 
-    // If no reviews are found, initialize with an empty array
+    // Initialize with empty array if no reviews are found
     if (!productReviews || productReviews.length === 0) {
         productReviews = []
     }
 
-    const totalOrders = orders?.length || 0
-
-    // Add reviews (empty array if none found)
+    // Add reviews, related data (vendor, category, etc.), and orders to the product
     product = {
         ...product,
-        category,
-        brand,
-        orders,
+        category: category || null,
+        subCategory: subCategory || null,
+        brand: brand || null,
+        vendor: vendor || null,
         reviews: productReviews,
         totalOrders,
     }
@@ -208,13 +520,13 @@ export const getProductById = catchAsync(async (req, res, next) => {
     // Cache the result
     await redisClient.setEx(cacheKey, 3600, JSON.stringify(product))
 
+    // Return the response
     res.status(200).json({
         status: 'success',
         cached: false,
         doc: product,
     })
 })
-
 export const getProductBySlug = catchAsync(async (req, res, next) => {
     const cacheKey = getCacheKey('Product', req.params.slug)
 
@@ -236,30 +548,46 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
         return next(new AppError(`No Product found with that slug`, 404))
     }
 
-    const category = await Category.findById(product.category).lean()
-    const brand = await Brand.findById(product.brand).lean()
+    // Fetch related data, with checks for undefined/null values
+    const category = product.category
+        ? await Category.findById(product.category).select('name slug').lean()
+        : null
+    const subCategory = product.subCategory
+        ? await SubCategory.findById(product.subCategory)
+              .select('name slug')
+              .lean()
+        : null
+    const brand = product.brand
+        ? await Brand.findById(product.brand).select('name logo slug').lean()
+        : null
+    const vendor = product.userId
+        ? await Vendor.findById(product.userId)
+              .select('firstName lastName slug shopName address')
+              .lean()
+        : null
 
+    // Fetch reviews for the product
     let productReviews = await ProductReview.find({
         product: product._id,
     }).lean()
 
-    let orders = await Order.find({
-        product: product._id,
+    // Fetch total orders related to the product
+    let totalOrders = await Order.countDocuments({
+        'products.product': product._id,
     }).lean()
 
-    // If no reviews are found, initialize with an empty array
+    // Initialize with empty array if no reviews are found
     if (!productReviews || productReviews.length === 0) {
         productReviews = []
     }
 
-    const totalOrders = orders?.length || 0
-
-    // Add reviews (empty array if none found)
+    // Add reviews, related data (vendor, category, etc.), and orders to the product
     product = {
         ...product,
-        category,
-        brand,
-        orders,
+        category: category || null,
+        subCategory: subCategory || null,
+        brand: brand || null,
+        vendor: vendor || null,
         reviews: productReviews,
         totalOrders,
     }
@@ -267,6 +595,7 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
     // Cache the result
     await redisClient.setEx(cacheKey, 3600, JSON.stringify(product))
 
+    // Return the response
     res.status(200).json({
         status: 'success',
         cached: false,
@@ -274,13 +603,108 @@ export const getProductBySlug = catchAsync(async (req, res, next) => {
     })
 })
 
-const relatedModels = [{ model: Wishlist, foreignKey: 'products' }]
+// export const getProductBySlug = catchAsync(async (req, res, next) => {
+//     const cacheKey = getCacheKey('Product', req.params.slug)
+
+//     // Check cache first
+//     const cachedDoc = await redisClient.get(cacheKey)
+
+//     if (cachedDoc) {
+//         return res.status(200).json({
+//             status: 'success',
+//             cached: true,
+//             doc: JSON.parse(cachedDoc),
+//         })
+//     }
+
+//     // If not in cache, fetch from database
+//     let product = await Product.findOne({ slug: req.params.slug }).lean()
+
+//     if (!product) {
+//         return next(new AppError(`No Product found with that slug`, 404))
+//     }
+
+//     const category = await Category.findById(product.category).lean()
+//     const brand = await Brand.findById(product.brand).lean()
+
+//     let productReviews = await ProductReview.find({
+//         product: product._id,
+//     }).lean()
+
+//     let orders = await Order.find({
+//         product: product._id,
+//     }).lean()
+
+//     // If no reviews are found, initialize with an empty array
+//     if (!productReviews || productReviews.length === 0) {
+//         productReviews = []
+//     }
+
+//     const totalOrders = orders?.length || 0
+
+//     // Add reviews (empty array if none found)
+//     product = {
+//         ...product,
+//         category,
+//         brand,
+//         orders,
+//         reviews: productReviews,
+//         totalOrders,
+//     }
+
+//     // Cache the result
+//     await redisClient.setEx(cacheKey, 3600, JSON.stringify(product))
+
+//     res.status(200).json({
+//         status: 'success',
+//         cached: false,
+//         doc: product,
+//     })
+// })
 
 // Delete a Product
 export const deleteProduct = deleteOne(Product)
 
 // Update product status
-export const updateProductStatus = updateStatus(Product)
+export const updateProductStatus = catchAsync(async (req, res, next) => {
+    const status = req.body.status
+    if (!status) {
+        return next(new AppError(`Please provide status value.`, 400))
+    }
+
+    // Perform the update operation
+    const doc = await Product.findByIdAndUpdate(
+        req.params.id,
+        { status },
+        {
+            new: true,
+            runValidators: true,
+        }
+    )
+
+    // Handle case where the document was not found
+    if (!doc) {
+        return next(new AppError(`No Product found with that ID`, 404))
+    }
+
+    // Increment approved count when product is approved
+    if (status === 'approved') {
+        await Vendor.findByIdAndUpdate(doc.userId, {
+            $inc: { approvedProducts: 1 },
+        })
+    }
+
+    // delete all document caches related to this model
+    await deleteKeysByPattern('Product')
+    await deleteKeysByPattern('Brand')
+    await deleteKeysByPattern('Category')
+    await deleteKeysByPattern('Vendor')
+
+    res.status(200).json({
+        status: 'success',
+        doc,
+    })
+})
 
 // Update product featured status
 export const updateProductFeaturedStatus = catchAsync(
@@ -303,14 +727,8 @@ export const updateProductFeaturedStatus = catchAsync(
             return next(new AppError(`No product found with that ID`, 404))
         }
 
-        const cacheKeyOne = getCacheKey('Product', productId)
-        await redisClient.del(cacheKeyOne)
-
-        const cacheKeySlug = getCacheKey('Product', doc?.slug)
-        await redisClient.del(cacheKeySlug)
-
-        const cacheKey = getCacheKey('Product', '', req.query)
-        await redisClient.del(cacheKey)
+        // delete all document caches related to this model
+        await deleteKeysByPattern('Product')
 
         res.status(200).json({
             status: 'success',
@@ -319,153 +737,131 @@ export const updateProductFeaturedStatus = catchAsync(
     }
 )
 
-// Mark product as sold
-export const sellProduct = catchAsync(async (req, res) => {
-    const productId = req.params.id
+export const bulkImportProducts = catchAsync(async (req, res, next) => {
+    const { products } = req.body // Expecting an array of products
+    const user = req.user
 
-    const product = await Product.findById(productId)
-
-    if (!product) {
-        return next(new AppError('No product found with that ID.', 404))
+    if (!products || !Array.isArray(products) || products.length === 0) {
+        return next(new AppError('Invalid or empty products array', 400))
     }
 
-    product.sell += 1
+    const productsToInsert = []
+    const failedProducts = []
 
-    await product.save()
+    for (const product of products) {
+        try {
+            let {
+                name,
+                description,
+                category,
+                subCategory,
+                subSubCategory,
+                brand,
+                productType,
+                digitalProductType,
+                sku,
+                unit,
+                tags,
+                price,
+                discount,
+                discountType,
+                discountAmount,
+                taxAmount,
+                taxIncluded,
+                minimumOrderQty,
+                shippingCost,
+                stock,
+                colors,
+                thumbnail,
+                images,
+                attributes,
+                videoLink,
+                metaTitle,
+                metaDescription,
+                userId,
+                userType,
+            } = product
 
-    res.status(200).json({
-        status: 'success',
-        doc: product,
-    })
-})
-
-// Update product details
-export const updateProduct = catchAsync(async (req, res, next) => {
-    const productId = req.params.id
-
-    const {
-        name,
-        description,
-        category,
-        subCategory,
-        subSubCategory,
-        brand,
-        productType,
-        digitalProductType,
-        sku,
-        unit,
-        tags,
-        price, // Base price or default price if no attribute price
-        discount,
-        discountType,
-        discountAmount,
-        taxAmount,
-        taxIncluded,
-        minimumOrderQty,
-        shippingCost,
-        stock,
-        isFeatured,
-        colors,
-        attributes, // Assuming attributes like 'small', 'medium', 'large'
-        size,
-        videoLink,
-        userId,
-        userType,
-    } = req.body
-
-    // Initialize discount calculation
-    let updatedDiscountAmount = discountAmount
-
-    // Calculate discount if needed
-    if (discountType === 'flat') {
-        updatedDiscountAmount = discountAmount
-    } else if (discountType === 'percent') {
-        updatedDiscountAmount = (price * discount) / 100
-    }
-
-    // Fetch prices based on selected attributes (e.g., size or color)
-    let finalPrice = price // Start with the base price
-
-    if (attributes && attributes.length > 0) {
-        const attributePricePromises = attributes.map(async (attributeId) => {
-            // Fetch attribute from the Attribute model (from another DB)
-            const attribute = await adminDbConnection
-                .model('Attribute')
-                .findById(attributeId)
-            if (!attribute) {
-                return next(new AppError('Invalid attribute selected', 400))
+            if (userType === 'vendor') {
+                const user = await Vendor.findById(userId)
+                if (!user) {
+                    throw new Error('Referenced vendor does not exist')
+                }
+            } else if (userType === 'in-house') {
+                const user = await Employee.findById(userId)
+                if (!user) {
+                    throw new Error('Referenced user does not exist')
+                }
+            } else {
+                throw new Error('Invalid userType provided')
             }
-            // Assume attribute has a `priceModifier` field to adjust the price
 
-            return attribute.priceModifier || 0
+            // Calculate discount amount
+            discountAmount =
+                discountType === 'percent'
+                    ? (price * discount) / 100
+                    : discountAmount
+
+            let productData = {
+                name,
+                description,
+                category,
+                subCategory,
+                subSubCategory,
+                brand,
+                productType,
+                sku,
+                unit,
+                tags,
+                price,
+                discount,
+                discountType,
+                discountAmount,
+                taxAmount,
+                taxIncluded,
+                minimumOrderQty,
+                shippingCost,
+                stock,
+                thumbnail,
+                images,
+                colors,
+                attributes,
+                videoLink,
+                userId,
+                userType,
+                metaTitle,
+                metaDescription,
+                slug: slugify(name, { lower: true }),
+            }
+
+            if (productType === 'digital') {
+                productData = { ...productData, digitalProductType }
+            }
+
+            productsToInsert.push(productData)
+        } catch (error) {
+            failedProducts.push({
+                productName: product.name || 'Unknown',
+                error: error.message,
+            })
+        }
+    }
+
+    if (productsToInsert.length > 0) {
+        console.log(productsToInsert)
+        const doc = await Product.insertMany(productsToInsert, {
+            ordered: false,
         })
 
-        const attributePriceModifiers = await Promise.all(
-            attributePricePromises
-        )
-
-        // Sum all the attribute-based price modifiers to get the final price
-        finalPrice =
-            price +
-            attributePriceModifiers.reduce(
-                (total, modifier) => total + modifier,
-                0
-            )
+        console.log(doc)
+        // Delete all related cache for Product
+        await deleteKeysByPattern('Product')
     }
-
-    // Update the product with new values and calculated final price
-    const updatedProduct = await Product.findByIdAndUpdate(
-        productId,
-        {
-            name,
-            description,
-            category,
-            subCategory,
-            subSubCategory,
-            brand,
-            productType,
-            digitalProductType,
-            sku,
-            unit,
-            tags,
-            price: finalPrice, // Set the updated final price
-            discount,
-            discountType,
-            discountAmount: updatedDiscountAmount,
-            taxAmount,
-            taxIncluded,
-            minimumOrderQty,
-            shippingCost,
-            stock,
-            isFeatured,
-            colors: [colors],
-            attributes: [attributes],
-            size,
-            videoLink,
-            userId,
-            userType,
-            slug: slugify(name, { lower: true }),
-        },
-        { new: true }
-    )
-
-    // Update cache for the product
-    const cacheKeyId = getCacheKey('Product', updatedProduct?._id)
-    const cacheKeySlug = getCacheKey('Product', updatedProduct?.slug)
-
-    await redisClient.del(cacheKeyId)
-    await redisClient.del(cacheKeySlug)
-
-    // Set updated product in cache
-    await redisClient.setEx(cacheKeyId, 3600, JSON.stringify(updatedProduct))
-    await redisClient.setEx(cacheKeySlug, 3600, JSON.stringify(updatedProduct))
-
-    // Invalidate product list cache
-    const cacheKeyModel = getCacheKey('Product', '', req.query)
-    await redisClient.del(cacheKeyModel)
 
     res.status(200).json({
         status: 'success',
-        doc: updatedProduct,
+        message: 'Bulk import completed',
+        insertedCount: productsToInsert.length,
+        failedProducts,
     })
 })

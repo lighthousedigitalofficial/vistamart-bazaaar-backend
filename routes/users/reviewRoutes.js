@@ -9,7 +9,6 @@ import {
     getProductReviewById,
     updateProductReview,
     updateProductReviewStatus,
-    getProductWithReviews,
 } from '../../controllers/users/reviewController.js'
 
 import { validateSchema } from '../../middleware/validationMiddleware.js'
@@ -20,22 +19,14 @@ const router = express.Router()
 router
     .route('/')
     .post(protect, validateSchema(reviewValidationSchema), createProductReview)
-    .get(getAllProductReviews)
+    .get(protect, getAllProductReviews)
 
 router
     .route('/:id')
     .get(protect, getProductReviewById)
     .put(protect, updateProductReview)
-    .delete(protect, restrictTo('admin'), deleteProductReview)
+    .delete(protect, deleteProductReview)
 
-router.put(
-    '/status/:id',
-    protect,
-    restrictTo('admin', 'vendor'),
-    updateProductReviewStatus
-)
-
-//Fetch Reviews wiyh productId
-router.get('/produtId', getProductWithReviews)
+router.put('/status/:id', protect, updateProductReviewStatus)
 
 export default router

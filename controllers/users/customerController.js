@@ -1,20 +1,37 @@
-import redisClient from '../../config/redisConfig.js'
 import Customer from '../../models/users/customerModel.js'
 import catchAsync from '../../utils/catchAsync.js'
-import { getCacheKey } from '../../utils/helpers.js'
 import {
     createOne,
     deleteOne,
     getAll,
     getOne,
-    updateOne,
     updateStatus,
 } from '../../factory/handleFactory.js'
+import { deleteKeysByPattern } from '../../services/redisService.js'
+import ProductReview from '../../models/users/productReviewModel.js'
 
 export const createCustomer = createOne(Customer)
 export const getCustomers = getAll(Customer)
 export const getCustomer = getOne(Customer)
-export const deleteCustomer = deleteOne(Customer)
+
+export const deleteCustomer = catchAsync(async (req, res, next) => {
+    const customer = await Customer.findByIdAndDelete(req.params.id).exec()
+
+    // Handle case where the customer was not found
+    if (!customer) {
+        return next(new AppError(`No customer found with that ID`, 404))
+    }
+
+    // Delete all products associated with this customer
+    // await ProductReview.deleteMany({ customer: req.params.id }).exec()
+
+    await deleteKeysByPattern('Customer')
+
+    res.status(204).json({
+        status: 'success',
+        doc: null,
+    })
+})
 
 export const updateCustomer = catchAsync(async (req, res, next) => {
     const {
@@ -22,6 +39,7 @@ export const updateCustomer = catchAsync(async (req, res, next) => {
         lastName,
         email,
         phoneNumber,
+        image,
         status,
         permanentAddress,
         officeShippingAddress,
@@ -34,6 +52,7 @@ export const updateCustomer = catchAsync(async (req, res, next) => {
         email,
         phoneNumber,
         status,
+        image,
         permanentAddress,
         officeShippingAddress,
         officeBillingAddress,
@@ -50,16 +69,7 @@ export const updateCustomer = catchAsync(async (req, res, next) => {
         return next(new AppError(`No customer found with that ID`, 404))
     }
 
-    const cacheKeyOne = getCacheKey('Customer', req.params.id)
-
-    // delete pervious document data
-    await redisClient.del(cacheKeyOne)
-    // updated the cache with new data
-    await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(customer))
-
-    // Update cache
-    const cacheKey = getCacheKey('Customer', '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Customer')
 
     res.status(200).json({
         status: 'success',

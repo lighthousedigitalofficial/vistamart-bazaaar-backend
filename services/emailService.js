@@ -1,31 +1,43 @@
-import nodemailer from 'nodemailer'
+import keys from '../config/keys.js'
+import catchAsync from '../utils/catchAsync.js'
+import { emailTransporter } from '../utils/helpers.js'
 
-const sendEmail = async (options) => {
-    // 1. Create a transporter
-    const transporter = nodemailer.createTransport({
-        service: 'gmail', // You can change this to another service like SendGrid, Mailgun, etc.
-        auth: {
-            user: process.env.EMAIL_ADDRESS,
-            pass: process.env.EMAIL_PASS_KEY,
-        },
-    })
+// const sendEmail = catchAsync(async (options) => {
+//     // Define the email options
+//     const mailOptions = {
+//         from: keys.emailAddress,
+//         to: options.email,
+//         subject: options.subject,
+//         html: options.html,
+//     }
 
-    // 2. Define the email options
+//     // Actually send the email
+//     await emailTransporter.sendMail(mailOptions, function (error, info) {
+//         if (error) {
+//             console.log(`Error:`, error)
+//         } else {
+//             console.log('Email sent: ' + info.response)
+//         }
+//     })
+// })
+
+const sendEmail = catchAsync(async (options) => {
+    // Define the email options
     const mailOptions = {
-        from: process.env.EMAIL_ADDRESS,
+        from: `Vista Mart <${keys.emailAddress}>`,
         to: options.email,
         subject: options.subject,
         html: options.html,
     }
 
-    // 3. Actually send the email
-    await transporter.sendMail(mailOptions, function (error, info) {
+    // Actually send the email
+    await emailTransporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             console.log(`Error:`, error)
         } else {
             console.log('Email sent: ' + info.response)
         }
     })
-}
+})
 
 export default sendEmail
