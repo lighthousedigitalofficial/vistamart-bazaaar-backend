@@ -40,9 +40,9 @@ const sellerWalletSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-const sellerWallet = transactionDbConnection.model(
+const SellerWallet = transactionDbConnection.model(
     'SellerWallet',
     sellerWalletSchema
 )
 
-export default sellerWallet
+export default SellerWallet
