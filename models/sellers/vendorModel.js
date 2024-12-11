@@ -48,6 +48,9 @@ const vendorSchema = new mongoose.Schema(
             required: [true, 'Please provide your address.'],
             trim: true,
         },
+        pickup_address_id: {
+            type: Number,
+        },
         verified: {
             type: String,
             enum: ['false', 'true'],
