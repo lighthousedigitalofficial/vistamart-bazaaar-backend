@@ -15,6 +15,7 @@ const categorySchema = new mongoose.Schema(
         },
         priority: Number,
         slug: String,
+
         status: {
             type: String,
             enum: ['active', 'inactive'],
@@ -27,6 +28,8 @@ const categorySchema = new mongoose.Schema(
         timestamps: true,
     }
 )
+
+categorySchema.index({ name: 'text' })
 
 // Virtual to count products associated with the category
 categorySchema.virtual('productCount', {

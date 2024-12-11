@@ -1,10 +1,6 @@
 import Category from '../../../models/admin/categories/categoryModel.js'
 import slugify from 'slugify'
-import {
-    deleteOne,
-    updateOne,
-    updateStatus,
-} from '../../../factory/handleFactory.js'
+import { updateOne, updateStatus } from '../../../factory/handleFactory.js'
 
 import catchAsync from '../../../utils/catchAsync.js'
 import { getCacheKey } from '../../../utils/helpers.js'
@@ -35,6 +31,7 @@ export const createCategory = catchAsync(async (req, res) => {
     }
 
     await deleteKeysByPattern('Category')
+    await deleteKeysByPattern('Search')
 
     const cacheKeyOne = getCacheKey('Category', category?._id)
     await redisClient.setEx(cacheKeyOne, 3600, JSON.stringify(category))
@@ -78,8 +75,11 @@ export const getCategories = catchAsync(async (req, res, next) => {
         categories.map(async (category) => {
             // Step 1: Fetch all products for the category
             const products = await Product.find({
-                category: category._id, // Match products by the category ID
-            }).lean()
+                category: category._id,
+                status: 'approved',
+            })
+                .select('_id')
+                .lean()
 
             const totalProducts = products?.length || 0
 
@@ -94,7 +94,6 @@ export const getCategories = catchAsync(async (req, res, next) => {
             // Step 4: Add products and totalOrders to the category object
             return {
                 ...category,
-                products, // Array of products in this category
                 totalOrders, // Total number of orders for these products
                 totalProducts,
             }
@@ -140,8 +139,11 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
 
     // Step 1: Fetch total products for the categor
     const products = await Product.find({
-        category: categoryId, // Match products with the given categor ID
-    }).lean()
+        category: categoryId,
+        status: 'approved',
+    })
+        .select('_id')
+        .lean()
 
     const totalProducts = products?.length || 0
 
@@ -155,7 +157,6 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
-        products,
         totalProducts,
         totalOrders,
     }
@@ -191,6 +192,7 @@ export const deleteCategory = catchAsync(async (req, res, next) => {
     await deleteKeysByPattern('Category')
     await deleteKeysByPattern('SubCategory')
     await deleteKeysByPattern('SubSubCategory')
+    await deleteKeysByPattern('Search')
 
     res.status(204).json({
         status: 'success',
@@ -225,8 +227,11 @@ export const getCategoryBySlug = catchAsync(async (req, res, next) => {
 
     // Step 1: Fetch total products for the categor
     const products = await Product.find({
-        category: categoryId, // Match products with the given categor ID
-    }).lean()
+        category: categoryId,
+        status: 'approved',
+    })
+        .select('_id')
+        .lean()
 
     const totalProducts = products?.length || 0
 
@@ -240,7 +245,6 @@ export const getCategoryBySlug = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
-        products,
         totalProducts,
         totalOrders,
     }

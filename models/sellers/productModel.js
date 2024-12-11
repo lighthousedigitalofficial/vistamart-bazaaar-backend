@@ -146,6 +146,7 @@ const productSchema = new mongoose.Schema(
             min: [0, 'Rating cannot be negative'],
             max: [5, 'Rating cannot exceed 5'],
             default: 0,
+            set: (val) => parseFloat((Math.round(val * 10) / 10).toFixed(1)),
         },
         numOfReviews: {
             type: Number,
@@ -163,6 +164,12 @@ const productSchema = new mongoose.Schema(
     },
     { timestamps: true }
 )
+
+productSchema.index({ name: 'text', description: 'text' }) // Text search
+productSchema.index({ category: 1, subCategory: 1 }) // Category hierarchy
+productSchema.index({ price: 1 }) // Sorting by price
+productSchema.index({ isFeatured: 1, rating: -1 }) // Featured products sorted by rating
+productSchema.index({ tags: 1 }) // Tag-based search
 
 productSchema.pre('save', async function (next) {
     try {
@@ -188,5 +195,10 @@ productSchema.pre('save', async function (next) {
 })
 
 const Product = sellerDbConnection.model('Product', productSchema)
+
+// // Sync indexes
+// Product.syncIndexes()
+//     .then(() => console.log('Indexes are synced'))
+//     .catch((err) => console.error('Error syncing indexes:', err))
 
 export default Product

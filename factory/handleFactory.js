@@ -6,6 +6,7 @@ import catchAsync from '../utils/catchAsync.js'
 import { getCacheKey } from '../utils/helpers.js'
 import mongoose from 'mongoose'
 import { deleteKeysByPattern } from '../services/redisService.js'
+import Vendor from '../models/sellers/vendorModel.js'
 
 // Check Document fields if they exisit it return data body
 // And if not it return Error
@@ -56,6 +57,7 @@ export const deleteOne = (Model) =>
 
         // delete all document caches related to this model
         await deleteKeysByPattern(Model.modelName)
+        await deleteKeysByPattern('Search')
 
         res.status(204).json({
             status: 'success',
@@ -98,6 +100,7 @@ export const updateOne = (Model) =>
 
         // delete all document caches related to this model
         await deleteKeysByPattern(Model.modelName)
+        await deleteKeysByPattern('Search')
 
         res.status(200).json({
             status: 'success',
@@ -136,6 +139,7 @@ export const createOne = (Model) =>
 
         // delete all document caches related to this model
         await deleteKeysByPattern(Model.modelName)
+        await deleteKeysByPattern('Search')
 
         res.status(201).json({
             status: 'success',
@@ -186,13 +190,12 @@ export const getAll = (Model, popOptions) =>
         const cacheKey = getCacheKey(Model.modelName, '', req.query)
 
         // Check cache first
-        const cachedDoc = await redisClient.get(cacheKey)
-        if (cachedDoc) {
+        const cachedResults = await redisClient.get(cacheKey)
+        if (cachedResults) {
             return res.status(200).json({
+                ...JSON.parse(cachedResults),
                 status: 'success',
                 cached: true,
-                results: JSON.parse(cachedDoc).length,
-                doc: JSON.parse(cachedDoc),
             })
         }
 
@@ -210,34 +213,48 @@ export const getAll = (Model, popOptions) =>
             }
         }
 
-        // Check if any query parameter for sorting, filtering, limiting, or pagination is present
-        const { sort, limit, page, ...filters } = req.query
+        const { sort, limit, page = 1, ...filters } = req.query
         const hasQueryOptions =
             sort || limit || page || Object.keys(filters).length > 0
 
-        // If query options are present, apply them; otherwise, return the data
-        let doc
+        let doc, totalDocs
+
         if (hasQueryOptions) {
+            // Step 1: Apply filters and count total documents
             const features = new APIFeatures(query, req.query)
                 .filter()
                 .sort()
                 .fieldsLimit()
-                .paginate()
+            totalDocs = await features.query.clone().countDocuments()
 
+            // Step 2: Apply pagination and fetch data
+            features.paginate()
             doc = await features.query
         } else {
+            // Fetch all documents if no query options are applied
             doc = await Model.find().lean()
+            totalDocs = doc.length
+        }
+
+        // Calculate pagination details
+        const currentPage = Number(page)
+        const limitNum = Number(limit)
+        const totalPages = limitNum ? Math.ceil(totalDocs / limitNum) : 1
+
+        const response = {
+            status: 'success',
+            cached: false,
+            totalDocs, // Total count of documents
+            results: doc.length, // Number of documents in the current page
+            currentPage, // Current page number
+            totalPages, // Total number of pages
+            doc,
         }
 
         // Cache the result if not in cache
-        await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(response))
 
-        res.status(200).json({
-            status: 'success',
-            cached: false,
-            results: doc.length,
-            doc,
-        })
+        res.status(200).send(response)
     })
 
 // GET All Documents
@@ -415,6 +432,12 @@ export const updateStatus = (Model) =>
 
         // delete all document caches related to this model
         await deleteKeysByPattern(Model.modelName)
+
+        if (Model.modelName !== 'Product') {
+            await deleteKeysByPattern('Product')
+        }
+        await deleteKeysByPattern('Brand')
+        await deleteKeysByPattern('Category')
 
         res.status(200).json({
             status: 'success',
