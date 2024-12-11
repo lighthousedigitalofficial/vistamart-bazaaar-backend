@@ -105,6 +105,7 @@ export const logout = catchAsync(async (req, res, next) => {
         message: 'Logout successfully',
     })
 })
+
 export const loginCustomer = catchAsync(async (req, res, next) => {
     const { email, password } = req.body
 

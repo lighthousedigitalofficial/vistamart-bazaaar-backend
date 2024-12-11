@@ -6,19 +6,15 @@ import {
     getTransactions,
     updateTransaction,
 } from '../../controllers/transactions/transactionController.js'
-import { validateSchema } from '../../middleware/validationMiddleware.js'
-import transactionValidationSchema from '../../validations/admin/transactions/transactionValidator.js'
 import { protect, restrictTo } from '../../middleware/authMiddleware.js'
+import checkObjectId from '../../middleware/checkObjectId.js'
 
 const router = express.Router()
 
-router
-    .route('/')
-    .post(validateSchema(transactionValidationSchema), createTransaction)
-    .get(protect, getTransactions)
+router.route('/').post(createTransaction).get(protect, getTransactions)
 
 router
-    .route('/:id')
+    .route('/:id', checkObjectId)
     .get(protect, getTransactionById)
     .put(protect, updateTransaction)
     .delete(protect, deleteTransaction)
