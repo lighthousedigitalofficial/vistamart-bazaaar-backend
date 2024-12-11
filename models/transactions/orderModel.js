@@ -12,6 +12,10 @@ const orderSchema = new mongoose.Schema(
             type: String,
             unique: true,
         },
+        trackingId: {
+            type: String,
+            unique: true,
+        },
         customer: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Customer',
