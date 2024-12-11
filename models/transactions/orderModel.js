@@ -9,26 +9,41 @@ import Customer from '../users/customerModel.js'
 const orderSchema = new mongoose.Schema(
     {
         orderId: {
-            type: Number,
+            type: String,
+            unique: true,
         },
         customer: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Customer',
             required: [true, 'Please provide customer.'],
         },
-        vendors: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Vendor',
-                required: [true, 'Please provide vendor.'],
-            },
-        ],
+        vendor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Vendor',
+            required: [true, 'Please provide vendor.'],
+        },
         products: [
             {
                 product: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'Product',
-                    required: [true, 'Please provide product.'],
+                    required: [true, 'Please provide product Id.'],
+                },
+                price: {
+                    type: Number,
+                    min: [1, 'Prdouct price cannot be less than 1.'],
+                },
+                discountAmount: {
+                    type: Number,
+                    default: 0,
+                },
+                shippingCost: {
+                    type: Number,
+                    default: 0,
+                },
+                taxAmount: {
+                    type: Number,
+                    default: 0,
                 },
                 quantity: {
                     type: Number,
@@ -60,14 +75,25 @@ const orderSchema = new mongoose.Schema(
             type: Number,
             required: [true, 'Please provide total amount.'],
         },
+        totalShippingCost: {
+            type: Number,
+            default: 0,
+        },
+        totalTaxAmount: {
+            type: Number,
+            default: 0,
+        },
+        totalQty: {
+            type: Number,
+            required: [true, 'Please provide total quantity.'],
+        },
+        totalDiscount: {
+            type: Number,
+            required: [true, 'Please provide total discount.'],
+        },
         paymentMethod: {
             type: String,
-            enum: [
-                'cash_on_delivery',
-                'jazzCash',
-                'credit_card',
-                'bank_transfer',
-            ],
+            enum: ['COD', 'JazzCash', 'CreditCard'],
             required: true,
         },
         shippingAddress: {
@@ -101,6 +127,7 @@ const orderSchema = new mongoose.Schema(
 
 orderSchema.pre('save', async function (next) {
     await checkReferenceId(Customer, this.customer, next)
+    await checkReferenceId(Vendor, this.vendor, next)
 
     // Check if products exist and validate them
     if (this.products && this.products.length > 0) {
@@ -112,17 +139,6 @@ orderSchema.pre('save', async function (next) {
 
         if (productCheck !== this.products.length) {
             return next(new AppError('One or more products do not exist.', 400))
-        }
-    }
-
-    // Check if vendor exist and validate them
-    if (this.vendors && this.vendors.length > 0) {
-        const vendorCheck = await Vendor.countDocuments({
-            _id: { $in: this.vendors },
-        })
-
-        if (vendorCheck !== this.vendors.length) {
-            return next(new AppError('Vendor do not exist.', 400))
         }
     }
 })

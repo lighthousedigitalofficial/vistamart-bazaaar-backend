@@ -6,11 +6,7 @@ import { getCacheKey } from '../../utils/helpers.js'
 import redisClient from '../../config/redisConfig.js'
 import APIFeatures from '../../utils/apiFeatures.js'
 
-import {
-    createOne,
-    deleteOne,
-    updateStatus,
-} from '../../factory/handleFactory.js'
+import { createOne, updateStatus } from '../../factory/handleFactory.js'
 import Product from '../../models/sellers/productModel.js'
 import Order from '../../models/transactions/orderModel.js'
 import AppError from '../../utils/appError.js'
@@ -51,8 +47,11 @@ export const getBrands = catchAsync(async (req, res, next) => {
         brands.map(async (brand) => {
             // Step 1: Fetch all products for the brand
             const products = await Product.find({
-                brand: brand._id, // Match products by the brand ID
-            }).lean()
+                brand: brand._id,
+                status: 'approved',
+            })
+                .select('_id')
+                .lean()
 
             const totalProducts = products?.length || 0
 
@@ -67,7 +66,6 @@ export const getBrands = catchAsync(async (req, res, next) => {
             // Step 4: Add products and totalOrders to the brand object
             return {
                 ...brand,
-                products, // Array of products in this brand
                 totalOrders, // Total number of orders for these products
                 totalProducts,
             }
@@ -114,8 +112,11 @@ export const getBrandById = catchAsync(async (req, res, next) => {
 
     // Step 1: Fetch total products for the brand
     const products = await Product.find({
-        brand: brandId, // Match products with the given brand ID
-    }).lean()
+        brand: brand._id,
+        status: 'approved',
+    })
+        .select('_id')
+        .lean()
 
     const totalProducts = products?.length || 0
 
@@ -129,7 +130,6 @@ export const getBrandById = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
-        products,
         totalProducts,
         totalOrders,
     }
@@ -170,8 +170,11 @@ export const getBrandBySlug = catchAsync(async (req, res, next) => {
 
     // Step 1: Fetch total products for the brand
     const products = await Product.find({
-        brand: brandId, // Match products with the given brand ID
-    }).lean()
+        brand: brandId,
+        status: 'approved',
+    })
+        .select('_id')
+        .lean()
 
     const totalProducts = products?.length || 0
 
@@ -185,7 +188,6 @@ export const getBrandBySlug = catchAsync(async (req, res, next) => {
 
     doc = {
         ...doc,
-        products,
         totalProducts,
         totalOrders,
     }
@@ -206,7 +208,12 @@ export const updateBrand = catchAsync(async (req, res) => {
 
     const doc = await Brand.findByIdAndUpdate(
         req.params.id,
-        { name, logo, imageAltText },
+        {
+            name,
+            logo,
+            imageAltText,
+            slug: slugify(filteredData.name, { lower: true }),
+        },
         { new: true }
     )
 
@@ -217,6 +224,7 @@ export const updateBrand = catchAsync(async (req, res) => {
 
     // Update cache
     await deleteKeysByPattern('Brand')
+    await deleteKeysByPattern('Search')
 
     res.status(200).json({
         status: 'success',
@@ -239,6 +247,7 @@ export const deleteBrand = catchAsync(async (req, res, next) => {
 
     await deleteKeysByPattern('Brand')
     await deleteKeysByPattern('Product')
+    await deleteKeysByPattern('Search')
 
     res.status(204).json({
         status: 'success',

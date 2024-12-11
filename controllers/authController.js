@@ -7,7 +7,10 @@ import redisClient from '../config/redisConfig.js'
 import catchAsync from '../utils/catchAsync.js'
 import AppError from './../utils/appError.js'
 import { loginService } from '../services/authService.js'
-import { removeRefreshToken } from '../services/redisService.js'
+import {
+    deleteKeysByPattern,
+    removeRefreshToken,
+} from '../services/redisService.js'
 
 import {
     createPasswordResetConfirmationMessage,
@@ -141,8 +144,7 @@ export const signupCustomer = catchAsync(async (req, res, next) => {
     await otpService.otpEmailSend(email, token)
 
     // 4. Clear previous cache for customers
-    const cacheKey = getCacheKey(Customer, '', req.query)
-    await redisClient.del(cacheKey)
+    await deleteKeysByPattern('Customer')
 
     // 5. Respond with success message
     res.status(201).json({
@@ -238,10 +240,18 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
+        // const resetURL = `${process.env.DOMAIN_NAME}/auth/resetPassword/${resetToken}`
+
+        // const domainName = `${req.protocol}://${req.get('host')}`
+        // const resetURL = `${domainName}/auth/resetPassword/${resetToken}`
+
+        const resetURL = `https://vistamart.biz/auth/reset-password/${resetToken}`
 
         // Get the user's IP address
-        const ipAddress = req.ip
+        const ipAddress =
+            req.headers['x-forwarded-for']?.split(',')[0] ||
+            req.socket.remoteAddress
+
         const timestamp =
             new Date().toISOString().replace('T', ' ').substring(0, 16) + ' GMT'
 
@@ -260,7 +270,8 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
         res.status(200).json({
             status: 'success',
-            message: 'Token sent to email!',
+            message:
+                'Please check your email inbox for a link to complete the reset.',
         })
     } catch (err) {
         user.passwordResetToken = undefined
@@ -314,6 +325,8 @@ export const resetPassword = catchAsync(async (req, res, next) => {
     user.password = passwordNew
     user.passwordResetToken = undefined
     user.passwordResetExpires = undefined
+    user.passwordChangedAt = Date.now()
+
     await user.save()
 
     await sendEmail({
@@ -322,7 +335,17 @@ export const resetPassword = catchAsync(async (req, res, next) => {
         html: message,
     })
 
-    createSendToken(user, 200, res)
+    await removeRefreshToken(user._id.toString())
+
+    // Clear the refreshToken cookie on the client
+    res.clearCookie('jwt')
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Password reset successfully.',
+    })
+
+    // createSendToken(user, 200, res)
 })
 
 export const updatePassword = catchAsync(async (req, res, next) => {

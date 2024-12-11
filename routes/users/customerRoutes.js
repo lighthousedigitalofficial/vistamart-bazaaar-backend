@@ -16,6 +16,7 @@ import {
     resetPassword,
     verifyCustomerOTPViaEmail,
 } from '../../controllers/authController.js'
+
 import {
     protect,
     restrictTo,
@@ -37,7 +38,7 @@ router.post(
 router.post('/otp/verify', verifyCustomerOTPViaEmail)
 router.post('/logout', protect, logout)
 
-router.put('/update-password', protect, selectModelByRole, updatePassword)
+router.put('/update-password', protect, updatePassword)
 router.post('/forgot-password', forgotPassword)
 router.put('/reset-password/:token', resetPassword)
 
