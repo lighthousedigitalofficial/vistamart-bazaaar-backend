@@ -44,12 +44,7 @@ router.put('/reset-password/:token', resetPassword)
 
 router
     .route('/')
-    .post(
-        protect,
-
-        validateSchema(customerValidationSchema),
-        createCustomer
-    )
+    .post(protect, validateSchema(customerValidationSchema), createCustomer)
     .get(protect, getCustomers)
 
 router.put(

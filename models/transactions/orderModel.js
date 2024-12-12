@@ -16,9 +16,6 @@ const orderSchema = new mongoose.Schema(
             type: String,
             unique: true,
         },
-        consignee_city_id: {
-            type: Number,
-        },
         customer: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Customer',
