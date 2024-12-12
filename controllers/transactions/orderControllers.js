@@ -476,3 +476,57 @@ export const getOrderByCustomer = catchAsync(async (req, res, next) => {
         doc,
     })
 })
+
+export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
+    const orderId = req.params.orderId
+
+    // Check cache first
+    const cacheKey = getCacheKey('Order', orderId)
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            message: 'Order details',
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    // If not in cache, fetch from database
+    const order = await Order.findOne({ orderId }).lean()
+
+    if (!order) {
+        return next(new AppError(`No Order found with that Id`, 404))
+    }
+
+    // Fetch related data from other databases
+    const productIds = order.products.map((p) => p.product)
+    const vendorId = order.vendor
+    const customerId = order.customer
+
+    // Fetch data from respective databases (using respective models)
+    const products = await Product.find({ _id: { $in: productIds } }).lean()
+    const customer = await Customer.findById(customerId)
+        .select('firstName lastName email phoneNumber')
+        .lean()
+
+    const vendor = await Vendor.findById(vendorId).lean()
+
+    // Attach related data to the order object
+    const detailedOrder = {
+        ...order,
+        products,
+        vendor,
+        customer,
+    }
+
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(detailedOrder))
+
+    res.status(200).json({
+        status: 'success',
+        cached: false,
+        message: 'Order details',
+        doc: detailedOrder,
+    })
+})
