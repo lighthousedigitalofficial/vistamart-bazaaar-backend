@@ -78,7 +78,6 @@ export const updateOne = (Model) =>
             }
         }
 
-        // Perform the update operation
         const doc = await Model.findByIdAndUpdate(req.params.id, filteredData, {
             new: true,
             runValidators: true,
