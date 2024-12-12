@@ -256,60 +256,6 @@ export const getAll = (Model, popOptions) =>
         res.status(200).send(response)
     })
 
-// GET All Documents
-// export const getAll = (Model, popOptions) =>
-//     catchAsync(async (req, res, next) => {
-//         const cacheKey = getCacheKey(Model.modelName, '', req.query)
-
-//         console.log('cached data')
-//         // Check cache first
-//         const cacheddoc = await redisClient.get(cacheKey)
-
-//         if (cacheddoc !== null) {
-//             return res.status(200).json({
-//                 status: 'success',
-//                 cached: true,
-//                 results: JSON.parse(cacheddoc).length,
-//                 doc: JSON.parse(cacheddoc),
-//             })
-//         }
-
-//         // EXECUTE QUERY
-//         let query = Model.find()
-
-//         // If popOptions is provided and path is an array or a string, populate the query
-//         // if (popOptions?.path) {
-//         //     if (Array.isArray(popOptions.path)) {
-//         //         popOptions.path.forEach((pathOption) => {
-//         //             query = query.populate(pathOption)
-//         //         })
-//         //     } else {
-//         //         query = query.populate(popOptions)
-//         //     }
-//         // }
-//         // If not in cache, fetch from database
-
-//         const features = new APIFeatures(query, req.query)
-//             .filter()
-//             .sort()
-//             .fieldsLimit()
-//             .paginate()
-
-//         const doc = await features.query
-
-//         console.log('data')
-
-//         // Cache the result
-//         await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
-
-//         res.status(200).json({
-//             status: 'success',
-//             cached: false,
-//             results: doc.length,
-//             doc,
-//         })
-//     })
-
 export const getOneBySlug = (Model, popOptions) =>
     catchAsync(async (req, res, next) => {
         const cacheKey = getCacheKey(Model.modelName, req.params.slug)

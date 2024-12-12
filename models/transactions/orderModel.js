@@ -104,6 +104,7 @@ const orderSchema = new mongoose.Schema(
             type: {
                 address: String,
                 city: String,
+                cityId: Number,
                 state: String,
                 zipCode: String,
                 country: String,
@@ -114,6 +115,7 @@ const orderSchema = new mongoose.Schema(
             type: {
                 address: String,
                 city: String,
+                cityId: Number,
                 state: String,
                 zipCode: String,
                 country: String,
