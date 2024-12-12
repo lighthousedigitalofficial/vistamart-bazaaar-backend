@@ -22,6 +22,7 @@ import { createTransaction } from './transactionController.js'
 import SellerBusiness from './../../models/admin/business/sellerBusinessModel.js'
 import { createAdminWallet } from './adminWalletController.js'
 import { updateSellerWallet } from './sellerWalletController.js'
+import ShippingInfo from '../../models/sellers/shippingInfoModel.js'
 
 const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
     // Find the coupon by ID
@@ -69,7 +70,6 @@ export const createOrder = catchAsync(async (req, res, next) => {
         totalAmount,
         totalDiscount,
         totalQty,
-        cityId,
         totalShippingCost,
         totalTaxAmount,
         paymentMethod,
@@ -89,7 +89,6 @@ export const createOrder = catchAsync(async (req, res, next) => {
         orderId: generateOrderId(),
         coupon: couponId || undefined,
         customer: customerId,
-        consignee_city_id: cityId,
         vendor,
         products,
         totalAmount,
@@ -291,6 +290,8 @@ export const getOrderById = catchAsync(async (req, res, next) => {
         .lean()
 
     const vendor = await Vendor.findById(vendorId).lean()
+    const shippingInfo =
+        (await ShippingInfo.findOne({ vendorId }).lean()) || null
 
     // Attach related data to the order object
     const detailedOrder = {
@@ -298,6 +299,7 @@ export const getOrderById = catchAsync(async (req, res, next) => {
         products,
         vendor,
         customer,
+        shippingInfo,
     }
 
     await redisClient.setEx(cacheKey, 3600, JSON.stringify(detailedOrder))
@@ -512,6 +514,8 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
         .lean()
 
     const vendor = await Vendor.findById(vendorId).lean()
+    const shippingInfo =
+        (await ShippingInfo.findOne({ vendorId }).lean()) || null
 
     // Attach related data to the order object
     const detailedOrder = {
@@ -519,6 +523,7 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
         products,
         vendor,
         customer,
+        shippingInfo,
     }
 
     await redisClient.setEx(cacheKey, 3600, JSON.stringify(detailedOrder))

@@ -126,13 +126,16 @@ export const loginCustomer = catchAsync(async (req, res, next) => {
 })
 
 export const signupCustomer = catchAsync(async (req, res, next) => {
-    const { firstName, lastName, email, password } = req.body
+    const { firstName, lastName, email, password, phoneNumber, referCode } =
+        req.body
 
     const newCustomer = new Customer({
         firstName,
         lastName,
         email,
         password,
+        phoneNumber,
+        referCode,
     })
 
     await newCustomer.save()
