@@ -5,6 +5,7 @@ import {
     getOne,
     updateStatus,
 } from '../../factory/handleFactory.js'
+import Vendor from '../../models/sellers/vendorModel.js'
 import AdminWallet from '../../models/transactions/adminWalletModel.js'
 import SellerWallet from '../../models/transactions/sellerWalletModel.js'
 import Withdraw from '../../models/transactions/withdrawModel.js'
@@ -184,15 +185,17 @@ export const deleteWithdraw = deleteOne(Withdraw)
 
 export const updateWithdrawRequestStatus = catchAsync(
     async (req, res, next) => {
-        const { status, note, image, vendorId } = req.body
+        const withdrawId = req.params.id
+
+        const { status, note, image } = req.body
 
         // Validate request data
-        if (!status || !vendorId) {
-            return next(new AppError(`Status and Vendor ID are required.`, 400))
+        if (!status) {
+            return next(new AppError(`Status are required.`, 400))
         }
 
         // Find and validate the withdraw request
-        const withdraw = await Withdraw.findOne({ requestedBy: vendorId })
+        const withdraw = await Withdraw.findById(withdrawId)
 
         if (!withdraw) {
             return next(
@@ -208,6 +211,15 @@ export const updateWithdrawRequestStatus = catchAsync(
             return next(
                 new AppError(
                     `Withdraw request has already been approved and cannot be updated further.`,
+                    400
+                )
+            )
+        }
+
+        if (withdraw.status === 'Rejected') {
+            return next(
+                new AppError(
+                    `Withdraw request has already been rejected. Please request antoher withdraw.`,
                     400
                 )
             )
@@ -229,7 +241,7 @@ export const updateWithdrawRequestStatus = catchAsync(
         if (status === 'Approved') {
             // Deduct from admin wallet
             const adminWallet = await AdminWallet.findOneAndUpdate(
-                { vendor: vendorId },
+                { vendor: withdraw.requestedBy },
                 { $inc: { pendingAmount: -amount } },
                 { new: true, runValidators: true }
             )
@@ -242,7 +254,7 @@ export const updateWithdrawRequestStatus = catchAsync(
 
             // Update seller wallet
             const sellerWallet = await SellerWallet.findOneAndUpdate(
-                { vendor: vendorId },
+                { vendor: withdraw.requestedBy },
                 {
                     $inc: {
                         alreadyWithdrawn: amount,
@@ -260,7 +272,7 @@ export const updateWithdrawRequestStatus = catchAsync(
         } else if (status === 'Rejected') {
             // Refund to seller wallet
             const sellerWallet = await SellerWallet.findOneAndUpdate(
-                { vendor: vendorId },
+                { vendor: withdraw.requestedBy },
                 {
                     $inc: {
                         withdrawableBalance: amount,

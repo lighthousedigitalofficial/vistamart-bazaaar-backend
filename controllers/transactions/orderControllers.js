@@ -284,10 +284,24 @@ export const getOrderById = catchAsync(async (req, res, next) => {
     const customerId = order.customer
 
     // Fetch data from respective databases (using respective models)
-    const products = await Product.find({ _id: { $in: productIds } }).lean()
-    const customer = await Customer.findById(customerId)
-        .select('firstName lastName email phoneNumber')
+    const products = await Product.find({ _id: { $in: productIds } })
+        .select(
+            'name price thumbnail slug userId discountAmount taxIncluded taxAmount'
+        )
         .lean()
+    const customer = await Customer.findById(customerId)
+        .select('firstName lastName email phoneNumber image')
+        .lean()
+
+    const detailedProducts = order.products.map((p) => {
+        const productDetails = products.find(
+            (prod) => prod._id.toString() === p.product.toString()
+        )
+        return {
+            ...p,
+            productDetails, // Attach detailed product data here
+        }
+    })
 
     const vendor = await Vendor.findById(vendorId).lean()
     const shippingInfo =
@@ -296,12 +310,11 @@ export const getOrderById = catchAsync(async (req, res, next) => {
     // Attach related data to the order object
     const detailedOrder = {
         ...order,
-        products,
+        products: detailedProducts,
         vendor,
         customer,
         shippingInfo,
     }
-
     await redisClient.setEx(cacheKey, 3600, JSON.stringify(detailedOrder))
 
     res.status(200).json({
@@ -508,9 +521,13 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
     const customerId = order.customer
 
     // Fetch data from respective databases (using respective models)
-    const products = await Product.find({ _id: { $in: productIds } }).lean()
+    const products = await Product.find({ _id: { $in: productIds } })
+        .select(
+            'name price thumbnail slug userId discountAmount taxIncluded taxAmount'
+        )
+        .lean()
     const customer = await Customer.findById(customerId)
-        .select('firstName lastName email phoneNumber')
+        .select('firstName lastName email phoneNumber image')
         .lean()
 
     const detailedProducts = order.products.map((p) => {
