@@ -13,7 +13,7 @@ import Order from '../../models/transactions/orderModel.js'
 import AppError from '../../utils/appError.js'
 
 import { deleteKeysByPattern } from '../../services/redisService.js'
-import { deleteOne } from './../../factory/handleFactory.js'
+import { deleteOne, updateOne } from './../../factory/handleFactory.js'
 import {
     sendOrderEmailToCustomer,
     sendOrderEmailToVendor,
@@ -513,6 +513,16 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
         .select('firstName lastName email phoneNumber')
         .lean()
 
+    const detailedProducts = order.products.map((p) => {
+        const productDetails = products.find(
+            (prod) => prod._id.toString() === p.product.toString()
+        )
+        return {
+            ...p,
+            productDetails, // Attach detailed product data here
+        }
+    })
+
     const vendor = await Vendor.findById(vendorId).lean()
     const shippingInfo =
         (await ShippingInfo.findOne({ vendorId }).lean()) || null
@@ -520,7 +530,7 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
     // Attach related data to the order object
     const detailedOrder = {
         ...order,
-        products,
+        products: detailedProducts,
         vendor,
         customer,
         shippingInfo,
@@ -535,3 +545,5 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
         doc: detailedOrder,
     })
 })
+
+export const updateOrderById = updateOne(Order)
