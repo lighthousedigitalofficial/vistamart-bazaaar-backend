@@ -362,13 +362,9 @@ export const updatePassword = catchAsync(async (req, res, next) => {
         user.password
     )
 
-    console.log(correct)
-
     if (!correct) {
         return next(new AppError('Your current password is incorrect.', 401))
     }
-
-    console.log(req.body)
 
     // 3) If so, update the password
     user.password = req.body.passwordNew
