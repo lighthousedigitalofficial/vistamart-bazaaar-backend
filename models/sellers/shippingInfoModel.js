@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
-import Vendor from './vendorModel.js'
-import { checkReferenceId } from '../../utils/helpers.js'
+// import Vendor from './vendorModel.js'
+// import { checkReferenceId } from '../../utils/helpers.js'
 import { sellerDbConnection } from '../../config/dbConnections.js'
 
 const shippingInfoSchema = new mongoose.Schema(
@@ -25,11 +25,11 @@ const shippingInfoSchema = new mongoose.Schema(
 )
 
 // Pre-save hook to check if the vendor exists before saving
-shippingInfoSchema.pre('save', async function (next) {
-    await checkReferenceId(Vendor, this.vendorId, next)
+// shippingInfoSchema.pre('save', async function (next) {
+//     await checkReferenceId(Vendor, this.vendorId, next)
 
-    next()
-})
+//     next()
+// })
 
 const ShippingInfo = sellerDbConnection.model(
     'ShippingInfo',

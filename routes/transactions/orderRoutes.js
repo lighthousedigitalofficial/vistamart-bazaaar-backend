@@ -8,6 +8,7 @@ import {
     getOrderByCustomer,
     getOrderStatus,
     getOrderDetailsByOderId,
+    updateOrderById,
 } from '../../controllers/transactions/orderControllers.js'
 import { validateSchema } from '../../middleware/validationMiddleware.js'
 import orderValidationSchema from '../../validations/admin/transactions/orderValidator.js'
@@ -25,6 +26,8 @@ router.route('/:id').get(protect, getOrderById).delete(protect, deleteOrder)
 router.route('/details/:orderId').get(protect, getOrderDetailsByOderId)
 
 router.get('/track-order/:orderId', getOrderStatus)
+
+router.put('/:id', protect, updateOrderById)
 
 router.route('/status/:id').put(protect, updateOrderStatus)
 
