@@ -354,8 +354,7 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 
 export const updatePassword = catchAsync(async (req, res, next) => {
     // 1) Get the Model & find the user with including password
-    const Model = req.Model
-    const user = await Model.findById(req.user._id).select('+password')
+    const user = await Customer.findById(req.user._id).select('+password')
 
     // 2) Check the Posted current password is correct
     const correct = await user.correctPassword(
@@ -363,14 +362,22 @@ export const updatePassword = catchAsync(async (req, res, next) => {
         user.password
     )
 
+    console.log(correct)
+
     if (!correct) {
-        return next(new AppError('Your current password is wrong.', 401))
+        return next(new AppError('Your current password is incorrect.', 401))
     }
+
+    console.log(req.body)
 
     // 3) If so, update the password
     user.password = req.body.passwordNew
     await user.save()
 
     // 4) send JWT
-    createSendToken(user, 200, res)
+    res.status(200).json({
+        status: 'success',
+        message: 'Password updated successfully.',
+    })
+    // createSendToken(user, 200, res)
 })
