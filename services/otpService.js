@@ -8,6 +8,7 @@ import keys from '../config/keys.js'
 import AppError from '../utils/appError.js'
 // import { emailTransporter } from '../utils/helpers.js'
 import sendEmail from './emailService.js'
+import axios from 'axios'
 
 // keysure Twilio
 // const client = twilio(keys.twilioAccountSID, keys.twilioAuthToken)
@@ -128,6 +129,45 @@ export const sendSMS = catchAsync(async (phone, otp) => {
         to: phone,
         body: `Dear Customer, your OTP code for Vistamart is: ${otp}. It is valid for 5 minutes.`,
     })
+})
+
+export const otpSMSSend = catchAsync(async (phone, otp) => {
+    // Normalize phone number to remove leading "+" if it exists
+    if (phone.startsWith('+92')) {
+        phone = phone.replace('+92', '92')
+    }
+    const payload = {
+        api_token: keys.lifetimeSMSToken,
+        api_secret: keys.lifetimeSMSSecret,
+        to: phone,
+        from: '8485',
+        event_id: '458',
+        data: JSON.stringify({ code: otp }),
+    }
+
+    try {
+        const response = await axios.post('https://lifetimesms.com/otp', null, {
+            params: payload,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        })
+
+        if (response.data?.messages?.[0]?.status !== 1) {
+            throw new AppError(
+                `SMS API error: ${
+                    response.data.messages[0]?.error || 'Unknown error'
+                }`,
+                500
+            )
+        }
+
+        return response.data
+    } catch (error) {
+        console.error(
+            'OTP Sending Error:',
+            error.response?.data || error.message
+        )
+        throw new AppError(error.message || 'Error sending OTP via SMS.', 500)
+    }
 })
 
 // Save OTP to the database

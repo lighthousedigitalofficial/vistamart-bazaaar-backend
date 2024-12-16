@@ -13,6 +13,10 @@ import {
     forgotVendorPassword,
     resetVendorPassword,
     verifyVendorOTPViaEmail,
+    forgotPasswordViaSMS,
+    resetVendorPasswordViaOTP,
+    validateOTPHandler,
+    searchVendors,
 } from '../../controllers/sellers/vendorController.js'
 import { validateSchema } from '../../middleware/validationMiddleware.js'
 import vendorValidationSchema from '../../validations/admin/sellers/vendorValidator.js'
@@ -35,7 +39,13 @@ router.put('/update-password', protect, updateVendorPassword)
 router.post('/forgot-password', forgotVendorPassword)
 router.put('/reset-password/:token', resetVendorPassword)
 
+router.post('/forgot-password-on-sms', forgotPasswordViaSMS)
+router.put('/reset-password-on-sms', resetVendorPasswordViaOTP)
+router.post('/validate-otp', validateOTPHandler) // For OTP validation
+
 router.route('/').post(protect, createVendor).get(getAllVendors)
+
+router.get('/search', searchVendors)
 
 router
     .route('/:id')

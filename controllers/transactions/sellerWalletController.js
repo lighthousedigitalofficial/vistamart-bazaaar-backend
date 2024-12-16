@@ -11,6 +11,8 @@ import {
     getOne,
     updateOne,
 } from '../../factory/handleFactory.js'
+import { getCacheKey } from '../../utils/helpers.js'
+import redisClient from '../../config/redisConfig.js'
 
 export const createSellerWallet = createOne(SellerWallet)
 
@@ -37,8 +39,8 @@ export const updateSellerWallet = async (order, seller, commission) => {
             },
             {
                 new: true,
-                upsert: true, // Create a new wallet if it doesn't exist
                 runValidators: true,
+                upsert: true, // Create a new wallet if it doesn't exist
             }
         )
 
@@ -160,6 +162,38 @@ export const calculateSellerWallet = catchAsync(async (req, res, next) => {
 // Function to get a seller wallet by seller ID
 export const getSellerWallets = getAll(SellerWallet)
 export const getSellerWalletById = getOne(SellerWallet)
+
+export const getSellerWalletByVendorId = catchAsync(async (req, res, next) => {
+    const { vendorId } = req.params
+    const cacheKey = getCacheKey('SellerWallet', vendorId)
+
+    // Check cache first
+    const cachedDoc = await redisClient.get(cacheKey)
+
+    if (cachedDoc) {
+        return res.status(200).json({
+            status: 'success',
+            cached: true,
+            doc: JSON.parse(cachedDoc),
+        })
+    }
+
+    const doc = await SellerWallet.findOne({ vendor: vendorId })
+
+    if (!doc) {
+        return next(new AppError(`No Seller wallet found with that ID`, 404))
+    }
+
+    // Cache the result
+    await redisClient.setEx(cacheKey, 3600, JSON.stringify(doc))
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Seller wallet details',
+        cached: false,
+        doc,
+    })
+})
 
 export const updateSellerWalletById = updateOne(SellerWallet)
 export const deleteSellerWalletById = deleteOne(SellerWallet)

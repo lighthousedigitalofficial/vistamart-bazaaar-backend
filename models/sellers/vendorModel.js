@@ -129,7 +129,12 @@ const vendorSchema = new mongoose.Schema(
 //     },
 // })
 
-vendorSchema.index({ shopName: 'text' })
+vendorSchema.index({
+    shopName: 'text',
+    address: 'text',
+    firstName: 'text',
+    lastName: 'text',
+})
 
 vendorSchema.virtual('bank', {
     ref: 'VendorBank',

@@ -7,6 +7,7 @@ const sellerWalletSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Vendor',
             required: [true, 'Please provide vendor id.'],
+            unique: true,
         },
         withdrawableBalance: {
             type: Number,
