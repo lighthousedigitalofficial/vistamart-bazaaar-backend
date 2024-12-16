@@ -103,6 +103,8 @@ export const createOrder = catchAsync(async (req, res, next) => {
         orderNote,
     }
 
+    console.log(newOrder)
+
     // Handle coupon usage (async for scalability)
     if (couponId) {
         updateCouponUserLimit(couponId, next)

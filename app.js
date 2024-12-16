@@ -15,6 +15,7 @@ import routes from './routes/index.js'
 import { cleanCache } from './factory/handleFactory.js'
 import helmet from 'helmet'
 import ExpressMongoSanitize from 'express-mongo-sanitize'
+import Vendor from './models/sellers/vendorModel.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

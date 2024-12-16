@@ -17,13 +17,14 @@ import {
     verifyCustomerOTPViaEmail,
 } from '../../controllers/authController.js'
 
-import {
-    protect,
-    restrictTo,
-    selectModelByRole,
-} from '../../middleware/authMiddleware.js'
+import { protect, restrictTo } from '../../middleware/authMiddleware.js'
 import { validateSchema } from '../../middleware/validationMiddleware.js'
 import customerValidationSchema from './../../validations/customerValidator.js'
+import {
+    forgotPasswordViaSMS,
+    resetPasswordViaSMSOTP,
+    validateOTPHandler,
+} from '../../controllers/users/customerController.js'
 // import { loginLimiter } from '../../utils/helpers.js'
 
 const router = express.Router()
@@ -42,17 +43,17 @@ router.put('/update-password', protect, updatePassword)
 router.post('/forgot-password', forgotPassword)
 router.put('/reset-password/:token', resetPassword)
 
+// on sms
+router.post('/forgot-password-on-sms', forgotPasswordViaSMS)
+router.put('/reset-password-on-sms', resetPasswordViaSMSOTP)
+router.post('/validate-otp', validateOTPHandler) // For OTP validation
+
 router
     .route('/')
     .post(protect, validateSchema(customerValidationSchema), createCustomer)
     .get(protect, getCustomers)
 
-router.put(
-    '/status/:id',
-    protect,
-
-    updateCustomerStatus
-)
+router.put('/status/:id', protect, updateCustomerStatus)
 
 router
     .route('/:id')
