@@ -8,8 +8,6 @@ import {
     updateSellerWalletById,
 } from '../../controllers/transactions/sellerWalletController.js'
 import { protect } from '../../middleware/authMiddleware.js'
-import { restrictTo } from '../../middleware/authMiddleware.js'
-import checkObjectId from '../../middleware/checkObjectId.js'
 
 const router = express.Router()
 
