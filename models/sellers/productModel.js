@@ -59,7 +59,7 @@ const productSchema = new mongoose.Schema(
             required: [true, 'Please provide Unit'],
         },
         weight: {
-            type: String,
+            type: Number,
             required: [true, 'Please provide product weight'],
         },
         tags: [String],
