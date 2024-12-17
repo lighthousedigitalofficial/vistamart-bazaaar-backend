@@ -151,32 +151,16 @@ export const createOrder = catchAsync(async (req, res, next) => {
     await deleteKeysByPattern('Product')
 
     // Send order confirmation emails
-    const [customer, seller, business] = await Promise.all([
+    const [customer, seller] = await Promise.all([
         Customer.findById(customerId).select('firstName email'),
         Vendor.findById(vendor).select('email firstName lastName shopName'),
-        SellerBusiness.findOne()
-            .sort({ createdAt: -1 })
-            .select('defaultCommission')
-            .lean(),
     ])
 
-    if (!customer || !seller || !business) {
-        return next(
-            new AppError(
-                'Customer, Vendor, or Business details not found.',
-                404
-            )
-        )
+    if (!customer || !seller) {
+        return next(new AppError('Customer or Vendor details not found.', 404))
     }
-
-    // Calculate commission and update wallets/transactions
-    const commission = (totalAmount * business.defaultCommission) / 100
-
-    await Promise.all([
-        createAdminWallet(newOrder, seller, commission),
-        updateSellerWallet(newOrder, seller, commission),
-        createTransaction(newOrder, seller, customer),
-    ])
+    // create order transcation
+    createTransaction(newOrder, seller, customer)
 
     // Send notifications
     await Promise.all([
@@ -452,6 +436,18 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
             await await deleteKeysByPattern('Product')
             await await deleteKeysByPattern('Vendor')
         }
+
+        const business = await SellerBusiness.findOne()
+            .sort({ createdAt: -1 })
+            .select('defaultCommission')
+            .lean()
+
+        // Calculate commission and update wallets/transactions
+        const commission = (totalAmount * business.defaultCommission) / 100
+        await Promise.all([
+            createAdminWallet(newOrder, seller, commission),
+            updateSellerWallet(newOrder, seller, commission),
+        ])
     }
 
     await deleteKeysByPattern('Order')
