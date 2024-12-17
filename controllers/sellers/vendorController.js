@@ -383,8 +383,6 @@ export const forgotVendorPassword = catchAsync(async (req, res, next) => {
         const timestamp =
             new Date().toISOString().replace('T', ' ').substring(0, 16) + ' GMT'
 
-        console.log(user.email, ipAddress, timestamp, resetURL)
-
         const message = await createPasswordResetMessage(
             user.email,
             ipAddress,
