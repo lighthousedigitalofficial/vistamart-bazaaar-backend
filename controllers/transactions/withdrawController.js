@@ -187,7 +187,7 @@ export const updateWithdrawRequestStatus = catchAsync(
     async (req, res, next) => {
         const withdrawId = req.params.id
 
-        const { status, note, image } = req.body
+        const { status, note, transactionReceiptImage } = req.body
 
         // Validate request data
         if (!status) {
@@ -235,7 +235,8 @@ export const updateWithdrawRequestStatus = catchAsync(
         // Update withdraw request with new status
         withdraw.status = status
         withdraw.note = note || withdraw.note
-        withdraw.image = image || withdraw.image
+        withdraw.transactionReceiptImage =
+            transactionReceiptImage || withdraw.transactonReceiptImage
         await withdraw.save()
 
         if (status === 'Approved') {

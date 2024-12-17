@@ -29,7 +29,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
         digitalProductType,
         sku,
         unit,
-        weigth,
+        weight,
         tags,
         price,
         discount,
