@@ -6,6 +6,11 @@ const keys = {
     port: process.env.PORT || 3000,
     nodeEnv: process.env.NODE_ENV,
 
+    // Client side urls
+    userClientURL: process.env.USER_CLIENT_URL,
+    sellerClientURL: process.env.SELLER_CLIENT_URL,
+    adminClientURL: process.env.ADMIN_CLIENT_URL,
+
     // Redis db
     redisURL: process.env.REDIS_URL,
     redisPassword: process.env.REDIS_PASSWORD,

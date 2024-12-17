@@ -21,6 +21,7 @@ import sendEmail from '../services/emailService.js'
 import * as crypto from 'crypto'
 import OTP from '../models/users/otpModel.js'
 import * as otpService from './../services/otpService.js'
+import keys from '../config/keys.js'
 
 export const createSendToken = catchAsync(async (user, statusCode, res) => {
     // loginService is Redis database to store the token in cache
@@ -244,12 +245,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        // const resetURL = `${process.env.DOMAIN_NAME}/auth/resetPassword/${resetToken}`
-
-        // const domainName = `${req.protocol}://${req.get('host')}`
-        // const resetURL = `${domainName}/auth/resetPassword/${resetToken}`
-
-        const resetURL = `https://vistamart.biz/auth/reset-password/${resetToken}`
+        const resetURL = `${keys.userClientURL}/auth/reset-password/${resetToken}`
 
         // Get the user's IP address
         const ipAddress =

@@ -79,9 +79,7 @@ export const getAdminBusinessAnalytics = catchAsync(async (req, res, next) => {
 })
 
 export const getVendorBusinessAnalytics = catchAsync(async (req, res, next) => {
-    const vendor = req.user._id // Vendor ID from authenticated user
-
-    console.log(req.user)
+    const vendorId = req.user._id // Vendor ID from authenticated user
 
     // Query vendor-specific data in parallel
     const [
@@ -96,22 +94,22 @@ export const getVendorBusinessAnalytics = catchAsync(async (req, res, next) => {
         returnedOrders,
         canceledOrders,
     ] = await Promise.all([
-        Order.countDocuments({ vendors: { vendor } }), // Count orders for this vendor
-        Product.countDocuments({ userId: vendor }), // Count products for this vendor
-        Order.countDocuments({ vendors: { vendor }, status: 'pending' }),
-        Order.countDocuments({ vendors: { vendor }, status: 'confirmed' }),
-        Order.countDocuments({ vendors: { vendor }, status: 'packaging' }),
+        Order.countDocuments({ vendor: vendorId }), // Count orders for this vendor
+        Product.countDocuments({ userId: vendorId }), // Count products for this vendor
+        Order.countDocuments({ vendor: vendorId, status: 'pending' }),
+        Order.countDocuments({ vendor: vendorId, status: 'confirmed' }),
+        Order.countDocuments({ vendor: vendorId, status: 'packaging' }),
         Order.countDocuments({
-            vendors: { vendor },
+            vendor: vendorId,
             status: 'out_for_delivery',
         }),
-        Order.countDocuments({ vendors: { vendor }, status: 'delivered' }),
+        Order.countDocuments({ vendor: vendorId, status: 'delivered' }),
         Order.countDocuments({
-            vendors: { vendor },
+            vendor: vendorId,
             status: 'failed_to_deliver',
         }),
-        Order.countDocuments({ vendors: { vendor }, status: 'returned' }),
-        Order.countDocuments({ vendors: { vendor }, status: 'canceled' }),
+        Order.countDocuments({ vendor: vendorId, status: 'returned' }),
+        Order.countDocuments({ vendor: vendorId, status: 'canceled' }),
     ])
 
     const doc = {
@@ -130,7 +128,7 @@ export const getVendorBusinessAnalytics = catchAsync(async (req, res, next) => {
     }
 
     // Cache the response for 1 minute
-    const cacheKey = getCacheKey(`vendor:${vendor}:business`)
+    const cacheKey = getCacheKey(`Vendor`, vendorId)
     await redisClient.setEx(cacheKey, 60, JSON.stringify(doc))
 
     // Send the response

@@ -28,6 +28,7 @@ import sendEmail from '../../services/emailService.js'
 import * as otpService from './../../services/otpService.js'
 import OTP from '../../models/users/otpModel.js'
 import { getOne, getOneBySlug } from '../../factory/handleFactory.js'
+import keys from '../../config/keys.js'
 
 export const createVendor = catchAsync(async (req, res, next) => {
     const {
@@ -372,9 +373,7 @@ export const forgotVendorPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        // const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
-
-        const resetURL = `https://seller.vistamart.biz/auth/reset-password/${resetToken}`
+        const resetURL = `${keys.sellerClientURL}/auth/reset-password/${resetToken}`
 
         // Get the user's IP address
         const ipAddress =
@@ -383,8 +382,6 @@ export const forgotVendorPassword = catchAsync(async (req, res, next) => {
 
         const timestamp =
             new Date().toISOString().replace('T', ' ').substring(0, 16) + ' GMT'
-
-        console.log(user.email, ipAddress, timestamp, resetURL)
 
         const message = await createPasswordResetMessage(
             user.email,

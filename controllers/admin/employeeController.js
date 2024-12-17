@@ -24,6 +24,7 @@ import sendEmail from '../../services/emailService.js'
 
 import OTP from '../../models/users/otpModel.js'
 import * as otpService from './../../services/otpService.js'
+import keys from '../../config/keys.js'
 
 export const employeeLogin = catchAsync(async (req, res, next) => {
     const { email, password } = req.body
@@ -92,9 +93,7 @@ export const forgotEmployeePassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-        // const resetURL = `${process.env.DOMAIN_NAME}/users/resetPassword/${resetToken}`
-
-        const resetURL = `https://admin.vistamart.biz/auth/reset-password/${resetToken}`
+        const resetURL = `${keys.adminClientURL}/auth/reset-password/${resetToken}`
 
         // Get the user's IP address
         const ipAddress =
