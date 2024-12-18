@@ -1,4 +1,4 @@
-import * as crypto from 'crypto'
+import { v4 as uuidv4 } from 'uuid'
 
 import catchAsync from '../../utils/catchAsync.js'
 import redisClient from '../../config/redisConfig.js'
@@ -43,22 +43,8 @@ const updateCouponUserLimit = catchAsync(async (_couponId, next) => {
 })
 
 function generateOrderId() {
-    // Define the character set for alphanumeric order IDs
-    const characters =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    const length = 8 // Desired length of the order ID
-    let orderId = ''
-
-    // Generate secure random bytes
-    const randomBytes = crypto.randomBytes(length)
-
-    // Map each random byte to a character in the character set
-    for (let i = 0; i < length; i++) {
-        const randomIndex = randomBytes[i] % characters.length // Use modulo to map to character set
-        orderId += characters[randomIndex]
-    }
-
-    return orderId
+    // Generate a UUID and take the first 8 characters
+    return uuidv4().replace(/-/g, '').substring(0, 8)
 }
 
 export const createOrder = catchAsync(async (req, res, next) => {
