@@ -13,7 +13,7 @@ const orderSchema = new mongoose.Schema(
         },
         trackingId: {
             type: String,
-            unique: true,
+            default: 0,
         },
         customer: {
             type: mongoose.Schema.Types.ObjectId,
