@@ -71,6 +71,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
     }
 
     // Prepare the order object
+
     const newOrder = {
         orderId: generateOrderId(),
         coupon: couponId || undefined,
