@@ -464,8 +464,6 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
             createAdminWallet(updatedOrder, seller, commission),
             updateSellerWallet(updatedOrder, seller, commission),
         ])
-    } else {
-        return next(new AppError('Order Items or Status not found.', 404))
     }
 
     await deleteKeysByPattern('Order')
