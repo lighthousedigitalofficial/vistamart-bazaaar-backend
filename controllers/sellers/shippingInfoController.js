@@ -19,9 +19,8 @@ export const getShippingInfoById = getOne(ShippingInfo)
 export const getShippingInfoByVendorId = catchAsync(async (req, res, next) => {
     const vendorId = req.params.vendorId
 
-    const cacheKey = getCacheKey('ShippingInfo', vendorId)
-
     // Check cache first
+    const cacheKey = getCacheKey('ShippingInfo', vendorId)
     const cachedDoc = await redisClient.get(cacheKey)
 
     if (cachedDoc) {
