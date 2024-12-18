@@ -272,7 +272,7 @@ export const getOrderById = catchAsync(async (req, res, next) => {
     // Fetch data from respective databases (using respective models)
     const products = await Product.find({ _id: { $in: productIds } })
         .select(
-            'name price thumbnail slug userId discountAmount taxIncluded taxAmount'
+            'name price thumbnail slug userId discountAmount taxIncluded taxAmount weight'
         )
         .lean()
     const customer = await Customer.findById(customerId)
@@ -397,7 +397,7 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
     }
 
     // Perform the update operation
-    const doc = await Order.findByIdAndUpdate(
+    const updatedOrder = await Order.findByIdAndUpdate(
         req.params.id,
         { status },
         {
@@ -407,13 +407,14 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
     )
 
     // Handle case where the document was not found
-    if (!doc) {
+    if (!updatedOrder) {
         return next(new AppError(`No Order found with that ID`, 404))
     }
 
     // If the order status is 'delivered', increment the product sell count
-    if (status === 'delivered') {
-        for (const item of doc?.products) {
+    if (status === 'delivered' && updatedOrder?.products) {
+        const vendorId = updatedOrder.vendor
+        for (const item of updatedOrder?.products) {
             const { product, quantity } = item
 
             // Update sold count by the quantity sold and reduce the stock by the same quantity
@@ -429,7 +430,7 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
             )
 
             // Increment order count when creating an order
-            await Vendor.findByIdAndUpdate(doc.vendor, {
+            await Vendor.findByIdAndUpdate(vendorId, {
                 $inc: { totalOrders: 1 },
             })
 
@@ -437,24 +438,42 @@ export const updateOrderStatus = catchAsync(async (req, res, next) => {
             await await deleteKeysByPattern('Vendor')
         }
 
-        const business = await SellerBusiness.findOne()
-            .sort({ createdAt: -1 })
-            .select('defaultCommission')
-            .lean()
+        const [business, seller] = await Promise.all([
+            SellerBusiness.findOne()
+                .sort({ createdAt: -1 })
+                .select('defaultCommission')
+                .lean(),
+            Vendor.findById(vendorId).select(
+                'email firstName lastName shopName'
+            ),
+        ])
+
+        if (!business || !seller) {
+            return next(
+                new AppError(
+                    'Businness Settings or Vendor details not found.',
+                    404
+                )
+            )
+        }
 
         // Calculate commission and update wallets/transactions
-        const commission = (totalAmount * business.defaultCommission) / 100
+        const commission =
+            (updatedOrder.totalAmount * business.defaultCommission) / 100
         await Promise.all([
-            createAdminWallet(newOrder, seller, commission),
-            updateSellerWallet(newOrder, seller, commission),
+            createAdminWallet(updatedOrder, seller, commission),
+            updateSellerWallet(updatedOrder, seller, commission),
         ])
+    } else {
+        return next(new AppError('Order Items or Status not found.', 404))
     }
 
     await deleteKeysByPattern('Order')
 
     res.status(200).json({
         status: 'success',
-        doc,
+        message: 'Order successfully updated',
+        doc: updatedOrder,
     })
 })
 
@@ -521,7 +540,7 @@ export const getOrderDetailsByOderId = catchAsync(async (req, res, next) => {
     // Fetch data from respective databases (using respective models)
     const products = await Product.find({ _id: { $in: productIds } })
         .select(
-            'name price thumbnail slug userId discountAmount taxIncluded taxAmount'
+            'name price thumbnail slug userId discountAmount taxIncluded taxAmount weight'
         )
         .lean()
     const customer = await Customer.findById(customerId)
