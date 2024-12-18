@@ -7,6 +7,7 @@ import {
     updateOne,
 } from '../../factory/handleFactory.js'
 import ShippingInfo from '../../models/sellers/shippingInfoModel.js'
+import AppError from '../../utils/appError.js'
 import catchAsync from '../../utils/catchAsync.js'
 import { getCacheKey } from '../../utils/helpers.js'
 

@@ -14,6 +14,10 @@ const shippingInfoSchema = new mongoose.Schema(
             type: Number,
             required: [true, 'Please provide picking address id.'],
         },
+        originCityId: {
+            type: Number,
+            required: [true, 'Please provide picking origin city id.'],
+        },
         shippingMethod: {
             type: String,
             required: [true, 'Please provide shipping method.'],

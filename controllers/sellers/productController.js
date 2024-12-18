@@ -318,7 +318,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
     if (updateFields.name) {
         updateFields.slug = slugify(updateFields.name, { lower: true })
     }
-
+    console.log({ updateFields })
     // Perform update with Mongoose and handle response
     const updatedProduct = await Product.findByIdAndUpdate(
         productId,
